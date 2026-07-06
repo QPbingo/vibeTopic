@@ -7,6 +7,7 @@
 | 应用配置 | `packages/shared/src/config.ts` | 可配置的全局业务参数 |
 | 环境变量-前端 | `apps/web/.env.example` | 前端环境变量模板 |
 | 环境变量-后端 | `apps/api/.env.example` | 后端环境变量模板 |
+| 环境变量-SSE | `apps/sse/.env.example` | SSE 推送服务环境变量模板 |
 | Docker Compose | `docker-compose.yml` | 本地开发环境 |
 
 ---
@@ -75,6 +76,15 @@ export const AppConfig = {
 
   /** 搜索关键词最小字符数 */
   SEARCH_KEYWORD_MIN_LENGTH: 2,
+
+  /** SSE Ticket 有效期（秒） */
+  SSE_TICKET_EXPIRES_IN: 60,
+
+  /** SSE 心跳间隔（秒） */
+  SSE_HEARTBEAT_INTERVAL: 30,
+
+  /** SSE 单用户最大并发连接数 */
+  SSE_MAX_CONNECTIONS_PER_USER: 5,
 } as const;
 ```
 
@@ -110,6 +120,12 @@ NEXT_PUBLIC_GITHUB_CLIENT_ID=your_github_client_id
 NEXT_PUBLIC_OSS_BUCKET_DOMAIN=https://your-bucket.oss-cn-hangzhou.aliyuncs.com
 # OSS Region
 NEXT_PUBLIC_OSS_REGION=oss-cn-hangzhou
+
+# ============================
+# SSE 推送
+# ============================
+# SSE 推送服务 URL
+NEXT_PUBLIC_SSE_URL=http://localhost:3001
 
 # ============================
 # 站点配置
@@ -204,6 +220,16 @@ CONTENT_AUDIT_ACCESS_KEY_ID=your_content_audit_key
 CONTENT_AUDIT_ACCESS_KEY_SECRET=your_content_audit_secret
 
 # ============================
+# SSE 推送 — ECS 内网通信
+# ============================
+# ECS SSE 服务内网地址
+SSE_SERVICE_URL=http://sse-service:3001
+# 内网 push 接口密钥（与 apps/sse 的 INTERNAL_PUSH_SECRET 一致）
+SSE_INTERNAL_PUSH_SECRET=your-internal-push-secret
+# SSE Ticket 签名密钥（与 apps/sse 的 SSE_TICKET_SECRET 一致，用于签发短期票据）
+SSE_TICKET_SECRET=your-sse-ticket-secret-at-least-32-chars
+
+# ============================
 # Redis（Upstash，用于限流）
 # ============================
 UPSTASH_REDIS_URL=redis://localhost:6379
@@ -224,7 +250,51 @@ RATE_LIMIT_CREATE_POST_RPM=10
 
 ---
 
-## 4. Docker Compose 本地开发环境（docker-compose.yml）
+## 4. 环境变量 — SSE 推送服务（apps/sse/.env.example）
+
+```bash
+# ============================
+# 服务基础
+# ============================
+# 服务端口
+PORT=3001
+# 环境标识
+NODE_ENV=development
+
+# ============================
+# SSE Token 校验
+# ============================
+# SSE Ticket 加密密钥（与 FC 后端共享，用于签发/校验短期票据）
+SSE_TICKET_SECRET=your-sse-ticket-secret-at-least-32-chars
+# SSE Ticket 有效期（秒），默认 60
+SSE_TICKET_EXPIRES_IN=60
+
+# ============================
+# 内网通信
+# ============================
+# FC 后端内网 push 接口密钥（防止外部直接调 /internal/push）
+INTERNAL_PUSH_SECRET=your-internal-push-secret
+
+# ============================
+# 连接管理
+# ============================
+# 心跳间隔（秒），默认 30
+SSE_HEARTBEAT_INTERVAL=30
+# 单用户最大并发连接数，默认 5
+SSE_MAX_CONNECTIONS_PER_USER=5
+# 全局最大连接数，默认 10000
+SSE_MAX_CONNECTIONS=10000
+
+# ============================
+# 监控
+# ============================
+# 健康检查端点暴露端口（与主端口相同）
+HEALTH_CHECK_PORT=3001
+```
+
+---
+
+## 5. Docker Compose 本地开发环境（docker-compose.yml）
 
 ```yaml
 version: '3.8'
@@ -275,10 +345,36 @@ services:
       timeout: 5s
       retries: 5
 
+  # SSE 推送服务（本地开发）
+  # 注意：需要在 apps/sse/ 下创建 Dockerfile，内容见下方说明
+  sse:
+    build:
+      context: ./apps/sse
+      dockerfile: Dockerfile
+    container_name: bingbingbingo-sse
+    ports:
+      - '3001:3001'
+    environment:
+      PORT: '3001'
+      NODE_ENV: development
+      SSE_TICKET_SECRET: dev-sse-ticket-secret-at-least-32-chars
+      SSE_TICKET_EXPIRES_IN: '60'
+      INTERNAL_PUSH_SECRET: dev-internal-push-secret
+      SSE_HEARTBEAT_INTERVAL: '30'
+      SSE_MAX_CONNECTIONS_PER_USER: '5'
+      SSE_MAX_CONNECTIONS: '10000'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3001/health']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
 volumes:
   postgres_data:
   minio_data:
 ```
+
+---
 
 ### 初始化 SQL（scripts/init-db.sql）
 
@@ -291,4 +387,20 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 -- 创建 pg_bigm 全文搜索配置（中文 2-gram 分词）
 -- pg_bigm 默认已支持，无需额外配置
 -- 测试：SELECT show_bigm('hello 你好世界');
+```
+
+---
+
+### SSE 服务 Dockerfile 模板（apps/sse/Dockerfile）
+
+```dockerfile
+FROM node:22-alpine
+WORKDIR /app
+COPY package.json pnpm-lock.yaml ./
+RUN corepack enable && pnpm install --frozen-lockfile --prod
+COPY . .
+EXPOSE 3001
+HEALTHCHECK --interval=10s --timeout=5s --retries=3 \
+  CMD wget -qO- http://localhost:3001/health || exit 1
+CMD ["node", "dist/index.js"]
 ```
