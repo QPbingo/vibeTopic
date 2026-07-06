@@ -60,6 +60,10 @@
 | 11011 | GitHub OAuth 授权失败 | GitHub 登录过程中的错误 |
 | 11012 | 用户已被封禁 | 账号状态为 banned |
 | 11013 | Refresh Token 无效 | Token 不匹配或已被撤销 |
+| 11014 | 邮箱未验证 | 请先验证邮箱再登录 |
+| 11015 | 验证链接无效或已过期 | 邮箱验证 token 无效/过期/已使用 |
+| 11016 | 重置密码链接无效或已过期 | 密码重置 token 无效/过期/已使用 |
+| 11017 | 邮箱未注册 | 忘记密码时输入的邮箱未注册 |
 
 ### 12001 - 12999：用户相关
 
@@ -82,6 +86,8 @@
 | 13005 | 内容长度超出限制 | 帖子正文超过限制（如 50000 字符） |
 | 13006 | 无权限编辑该帖子 | 非帖子作者尝试编辑 |
 | 13007 | 无权限删除该帖子 | 非帖子作者且非管理员尝试删除 |
+| 13008 | 内容审核未通过 | 帖子内容违反社区规范，请修改后重新提交 |
+| 13009 | 帖子正在审核中 | 帖子处于 pending_review 状态，审核完成前不可操作 |
 
 ### 14001 - 14999：评论相关
 
@@ -99,8 +105,8 @@
 
 | 错误码 | message | 说明 |
 |--------|---------|------|
-| 15001 | 已点赞 | 已对目标点过赞，不可重复 |
-| 15002 | 未点赞 | 取消点赞时目标未被用户点赞 |
+| 15001 | 已点赞 | 已对该目标点过赞，重复调用 POST like 时报错 |
+| 15002 | 未点赞 | 取消点赞时目标未被用户点过赞，DELETE like 时报错 |
 | 15003 | 点赞目标不存在 | 帖子或评论不存在 |
 
 ### 16001 - 16999：收藏相关
@@ -193,6 +199,10 @@ export const ErrorCodes = {
   GITHUB_OAUTH_FAILED: 11011,
   USER_BANNED: 11012,
   INVALID_REFRESH_TOKEN: 11013,
+  EMAIL_NOT_VERIFIED: 11014,
+  INVALID_VERIFY_TOKEN: 11015,
+  INVALID_RESET_TOKEN: 11016,
+  EMAIL_NOT_REGISTERED: 11017,
 
   // 用户
   USER_NOT_FOUND: 12001,
@@ -209,6 +219,8 @@ export const ErrorCodes = {
   POST_CONTENT_TOO_LONG: 13005,
   POST_EDIT_FORBIDDEN: 13006,
   POST_DELETE_FORBIDDEN: 13007,
+  POST_CONTENT_REJECTED: 13008,
+  POST_UNDER_REVIEW: 13009,
 
   // 评论
   COMMENT_NOT_FOUND: 14001,
@@ -286,6 +298,10 @@ export const ErrorMessages: Record<ErrorCode, string> = {
   [ErrorCodes.GITHUB_OAUTH_FAILED]: 'GitHub OAuth 授权失败',
   [ErrorCodes.USER_BANNED]: '用户已被封禁',
   [ErrorCodes.INVALID_REFRESH_TOKEN]: 'Refresh Token 无效',
+  [ErrorCodes.EMAIL_NOT_VERIFIED]: '邮箱未验证',
+  [ErrorCodes.INVALID_VERIFY_TOKEN]: '验证链接无效或已过期',
+  [ErrorCodes.INVALID_RESET_TOKEN]: '重置密码链接无效或已过期',
+  [ErrorCodes.EMAIL_NOT_REGISTERED]: '邮箱未注册',
   [ErrorCodes.USER_NOT_FOUND]: '用户不存在',
   [ErrorCodes.CANNOT_OPERATE_SELF]: '不能操作自己',
   [ErrorCodes.USER_UPDATE_FAILED]: '用户信息更新失败',
@@ -298,6 +314,8 @@ export const ErrorMessages: Record<ErrorCode, string> = {
   [ErrorCodes.POST_CONTENT_TOO_LONG]: '内容长度超出限制',
   [ErrorCodes.POST_EDIT_FORBIDDEN]: '无权限编辑该帖子',
   [ErrorCodes.POST_DELETE_FORBIDDEN]: '无权限删除该帖子',
+  [ErrorCodes.POST_CONTENT_REJECTED]: '内容审核未通过',
+  [ErrorCodes.POST_UNDER_REVIEW]: '帖子正在审核中',
   [ErrorCodes.COMMENT_NOT_FOUND]: '评论不存在',
   [ErrorCodes.COMMENT_CONTENT_EMPTY]: '评论内容不能为空',
   [ErrorCodes.COMMENT_CONTENT_TOO_LONG]: '评论内容长度超出限制',

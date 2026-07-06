@@ -42,6 +42,9 @@
 - `idx_users_github_id` ON (github_id)
 - `idx_users_created_at` ON (created_at)
 
+**设计说明**：
+- `refresh_token` 存储单字段哈希值，MVP 阶段仅支持单设备登录。新设备登录会覆盖旧 Refresh Token。后期可拆分为 `user_refresh_tokens` 独立表（user_id, token_hash, device_info, expires_at）以支持多设备。
+
 ### 1.2 user_follows — 用户关注表
 
 记录用户之间的关注关系（单向关注）。
@@ -59,6 +62,29 @@
 **约束**：
 - CHECK (follower_id != followee_id) — 不能关注自己
 
+### 1.3 user_tokens — 用户令牌表
+
+存储邮箱验证、密码重置等一次性令牌。
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| id | UUID | PK | 令牌唯一标识 |
+| user_id | UUID | FK → users.id, NOT NULL | 关联用户 ID |
+| token_hash | VARCHAR(255) | UNIQUE, NOT NULL | 令牌 SHA-256 哈希值 |
+| type | VARCHAR(20) | NOT NULL | 令牌类型：`email_verify`（邮箱验证）/ `password_reset`（密码重置） |
+| expires_at | TIMESTAMPTZ | NOT NULL | 令牌过期时间 |
+| used_at | TIMESTAMPTZ | | 使用时间，NULL 表示未使用 |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 创建时间 |
+
+**索引**：
+- `idx_user_tokens_user_type` ON (user_id, type) — 查询用户某类令牌
+- `idx_user_tokens_hash` ON (token_hash) — 按令牌值查找
+
+**设计说明**：
+- 令牌原文通过邮件发送给用户，数据库仅存储哈希值，防止泄露后批量伪造
+- 验证成功后设置 `used_at` 标记已使用，防止重复利用
+- `password_reset` 类型令牌使用后，应同时吊销该用户所有 Refresh Token
+
 ---
 
 ## 2. 帖子体系
@@ -75,7 +101,7 @@
 | content_html | TEXT | NOT NULL | 帖子正文预渲染后的 HTML（加速前端展示） |
 | slug | VARCHAR(250) | UNIQUE, NOT NULL | URL 友好的唯一标识（由标题自动生成 + 随机后缀） |
 | user_id | UUID | FK → users.id, NOT NULL | 发帖用户 ID |
-| status | VARCHAR(20) | NOT NULL, DEFAULT 'published' | 状态：`published`（已发布）/ `hidden`（已隐藏）/ `deleted`（已删除） |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'pending_review' | 状态：`pending_review`（机审中，仅作者可见）/ `published`（已发布）/ `rejected`（审核不通过）/ `hidden`（管理员隐藏）/ `deleted`（已删除） |
 | view_count | INTEGER | NOT NULL, DEFAULT 0 | 浏览次数 |
 | like_count | INTEGER | NOT NULL, DEFAULT 0 | 点赞数（冗余字段，实际值从 likes 表计算） |
 | comment_count | INTEGER | NOT NULL, DEFAULT 0 | 评论数（冗余字段，实际值从 comments 表计算） |
@@ -87,7 +113,7 @@
 
 **索引**：
 - `idx_posts_user_id` ON (user_id)
-- `idx_posts_status_created` ON (status, created_at DESC) — 首页信息流
+- `idx_posts_status_created` ON (status, created_at DESC) — 首页信息流（仅 status='published'）
 - `idx_posts_slug` ON (slug)
 - `idx_posts_fts` — GIN 索引，用于 PostgreSQL 全文搜索（content_md + title）
 
@@ -197,8 +223,8 @@
 |------|------|------|------|
 | id | UUID | PK | 通知唯一标识 |
 | user_id | UUID | FK → users.id, NOT NULL | 通知接收者用户 ID |
-| type | VARCHAR(20) | NOT NULL | 通知类型：`like`（被点赞）/ `comment`（被评论）/ `reply`（评论被回复）/ `bookmark`（被收藏）/ `follow`（被关注） |
-| actor_id | UUID | FK → users.id, NOT NULL | 触发通知的用户 ID |
+| type | VARCHAR(20) | NOT NULL | 通知类型：`like`（被点赞）/ `comment`（被评论）/ `reply`（评论被回复）/ `bookmark`（被收藏）/ `follow`（被关注）/ `system`（系统通知，如审核结果） |
+| actor_id | UUID | FK → users.id | 触发通知的用户 ID（`system` 类型通知为 NULL） |
 | target_type | VARCHAR(10) | | 关联目标类型：`post` / `comment` |
 | target_id | UUID | | 关联目标 ID |
 | content | VARCHAR(500) | | 通知摘要文本（如 "xxx 评论了你的帖子"） |
@@ -206,6 +232,7 @@
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 通知时间 |
 
 **索引**：
+- `uq_notifications_dedup` UNIQUE (user_id, actor_id, type, target_type, target_id) — 防止同一用户对同一目标的同类型操作产生重复通知
 - `idx_notifications_user_unread` ON (user_id, is_read, created_at DESC) — 查询未读通知
 - `idx_notifications_user_created` ON (user_id, created_at DESC) — 通知中心列表
 
@@ -281,5 +308,10 @@
 - `posts.comment_count` ← 监听 `comments` 表的 INSERT/DELETE（仅 status='published'）
 - `posts.bookmark_count` ← 监听 `bookmarks` 表的 INSERT/DELETE
 - `comments.like_count` ← 监听 `likes` 表的 INSERT/DELETE（target_type='comment'）
-- `tags.post_count` ← 监听 `post_tags` 表的 INSERT/DELETE
+- `tags.post_count` ← 监听 `post_tags` 表的 INSERT/DELETE（仅统计 status='published' 的帖子）
 - `posts.updated_at` ← 任意字段变更时自动更新时间
+
+**审核状态说明**：
+- `pending_review` 和 `rejected` 状态的帖子不出现在首页信息流、搜索、标签页中
+- 作者在「我的帖子」中可查看所有状态的帖子
+- `rejected` 帖子可通过 `POST /api/v1/posts/:id/resubmit` 重新提交审核，状态重置为 `pending_review`

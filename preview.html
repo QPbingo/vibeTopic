@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>bingbingbingo — Vibe Coding 开发者社区</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Zpix 中文像素字体 */
+@font-face { font-family:'Zpix'; src:url('https://cdn.jsdelivr.net/npm/zpix@3.1.0/dist/Zpix.woff2') format('woff2'); font-display:swap; }
+
+* { margin:0; padding:0; box-sizing:border-box; border-radius:0!important; }
+html { font-size:16px; -webkit-font-smoothing:antialiased; }
+/* UI 层的像素字体覆盖 */
+.pixel-text, .tab, .pixel-btn, .sidebar-title, .pixel-tag, .nav-link, .sidebar-hot-rank { font-family:'Zpix','Space Grotesk',monospace; -webkit-font-smoothing:none; }
+body::before { content:''; position:fixed; inset:0; z-index:-1;
+  background:
+    /* pixel grid */
+    repeating-linear-gradient(0deg, rgba(168,85,247,0.02) 0px, rgba(168,85,247,0.02) 1px, transparent 1px, transparent 16px),
+    repeating-linear-gradient(90deg, rgba(168,85,247,0.02) 0px, rgba(168,85,247,0.02) 1px, transparent 1px, transparent 16px),
+    /* aurora glow */
+    radial-gradient(ellipse 60% 40% at 15% 5%, rgba(6,182,212,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 35% at 85% 10%, rgba(244,63,94,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 35% at 50% 80%, rgba(168,85,247,0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 75% 70%, rgba(234,179,8,0.04) 0%, transparent 60%);
+  pointer-events:none; }
+body { background:#000000; color:#E5E5E5; font-family:'Inter',system-ui,-apple-system,'Noto Sans SC',sans-serif; font-size:15px; line-height:1.6; min-height:100vh; }
+
+:root {
+  --primary:#A855F7; --primary-dim:rgba(168,85,247,0.35); --primary-faint:rgba(168,85,247,0.1);
+  --pink:#F43F5E; --pink-dim:rgba(244,63,94,0.35); --pink-faint:rgba(244,63,94,0.08);
+  --cyan:#06B6D4; --cyan-dim:rgba(6,182,212,0.3);
+  --green:#10B981; --green-dim:rgba(16,185,129,0.3);
+  --bg:#000000; --card-bg:#0F0F0F; --muted-bg:#141414; --muted-text:#888888;
+  --border-subtle:rgba(255,255,255,0.08); --pixel:16px; --nav-h:64px;
+}
+
+/* Pixel corner blocks */
+.pixel-corner { position:absolute; width:12px; height:12px; }
+.pixel-corner.tl { top:0; left:0; background:var(--primary); }
+.pixel-corner.tr { top:0; right:0; background:var(--pink); }
+.pixel-corner.bl { bottom:0; left:0; background:var(--cyan); }
+.pixel-corner.br { bottom:0; right:0; background:var(--primary); }
+
+/* Pixel separator — dotted */
+.pixel-sep { height:16px; background:repeating-linear-gradient(90deg, var(--primary) 0px, var(--primary) 8px, transparent 8px, transparent 16px); opacity:0.3; margin:0 0 20px; }
+
+/* Post card corner blocks */
+.post-card-corner { position:relative; }
+
+/* NAV */
+
+.pixel-nav { position:sticky; top:0; z-index:100; height:var(--nav-h);
+  background:rgba(0,0,0,0.95); backdrop-filter:blur(12px);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 24px; box-shadow:0 4px 0 0 rgba(6,182,212,0.6), 0 10px 0 0 rgba(244,63,94,0.4), 0 16px 0 0 rgba(168,85,247,0.2); }
+.nav-brand { font-family:'Space Grotesk','Inter',system-ui,sans-serif;
+  font-size:20px; font-weight:700; letter-spacing:-0.5px;
+  color:#F5F0EB; text-decoration:none; display:flex; align-items:center; gap:12px; }
+/* Pixel art "B" logo — 5x5 block grid */
+.pixel-logo { display:grid; grid-template-columns:repeat(5,8px); grid-template-rows:repeat(5,8px); gap:2px; flex-shrink:0; }
+.pixel-logo .px { width:8px; height:8px; }
+.pixel-logo .px.on { background:#06B6D4; }
+.pixel-logo .px.on2 { background:#F43F5E; }
+.pixel-logo .px.on3 { background:#A855F7; }
+.nav-search { padding:8px 16px; font-family:'Inter',system-ui,sans-serif; font-size:14px;
+  background:var(--card-bg); color:#F5F0EB; border:none;
+  box-shadow:0 0 0 1px var(--border-subtle); width:240px; outline:none; }
+.nav-search::placeholder { color:var(--muted-text); }
+.nav-search:focus { box-shadow:0 0 0 2px var(--primary); }
+.nav-actions { display:flex; align-items:center; gap:20px; }
+.nav-link { font-size:13px; font-weight:500; color:var(--muted-text); text-decoration:none; }
+.nav-link:hover { color:#06B6D4; }
+.nav-notif { position:relative; }
+.nav-notif-dot { position:absolute; top:-4px; right:-6px; width:8px; height:8px; background:#06B6D4; }
+
+/* BUTTONS */
+.pixel-btn { display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:10px 24px; font-family:'Inter',system-ui,sans-serif; font-size:13px; font-weight:600;
+  letter-spacing:0.5px; color:#F5F0EB; background:var(--card-bg); border:none; cursor:pointer;
+  box-shadow:16px 16px 0 0 rgba(6,182,212,0.6); transition:transform 60ms,box-shadow 60ms;
+  user-select:none; text-decoration:none; text-transform:uppercase; }
+.pixel-btn:active { transform:translate(16px,16px); box-shadow:0 0 0 0 rgba(6,182,212,0.6); }
+.pixel-btn-accent { box-shadow:16px 16px 0 0 rgba(244,63,94,0.6); }
+.pixel-btn-subtle { box-shadow:16px 16px 0 0 rgba(6,182,212,0.35); }
+
+/* TAGS */
+.pixel-tag { display:inline-block; padding:3px 8px; font-size:12px; font-weight:500;
+  background:rgba(6,182,212,0.1); color:#22D3EE; letter-spacing:0.3px; }
+.pixel-tag-official { background:rgba(168,85,247,0.12); color:#C084FC; }
+
+/* LAYOUT */
+.page-layout { display:flex; gap:32px; max-width:1120px; margin:0 auto; padding:0 20px 64px; }
+.feed-col { flex:1; min-width:0; }
+.sidebar-col { width:280px; flex-shrink:0; }
+
+/* TABS */
+.tabs { display:flex; gap:8px; }
+.tab { padding:8px 20px; font-size:13px; font-weight:600; color:var(--muted-text);
+  background:transparent; border:none; cursor:pointer;
+  box-shadow:0 0 0 1px var(--border-subtle); letter-spacing:0.3px; }
+.tab.active { color:#000; background:var(--cyan); box-shadow:0 0 0 1px var(--cyan); }
+.tab:hover:not(.active) { color:#F5F0EB; background:var(--card-bg); }
+
+/* FEED */
+.post-feed { display:flex; flex-direction:column; gap:20px; }
+.pixel-card { box-shadow:16px 16px 0 0 rgba(6,182,212,0.25), 0 0 0 1px var(--border-subtle);
+  background:var(--card-bg); padding:24px; transition:box-shadow 150ms; }
+.pixel-card:hover { box-shadow:16px 16px 0 0 rgba(6,182,212,0.7), 32px 32px 0 -16px rgba(244,63,94,0.5), 48px 48px 0 -32px rgba(168,85,247,0.3), 0 0 0 1px rgba(6,182,212,0.3); }
+.post-card-row { display:flex; gap:16px; align-items:flex-start; }
+.post-card-avatar { flex-shrink:0; }
+.avatar-block { width:44px; height:44px; display:flex; align-items:center; justify-content:center;
+  font-family:'Space Grotesk','Inter',system-ui,sans-serif; font-size:16px; font-weight:700;
+  color:#FFF; clip-path:polygon(20% 0%,80% 0%,100% 20%,100% 80%,80% 100%,20% 100%,0% 80%,0% 20%); flex-shrink:0; }
+.post-card-body { flex:1; min-width:0; }
+.post-card-user { font-weight:600; font-size:14px; color:#E5E5E5; }
+.post-card-time { font-size:12px; color:var(--muted-text); font-weight:400; }
+.post-card-title { font-weight:700; font-size:16px; color:#E5E5E5; line-height:1.4;
+  margin-bottom:6px; text-decoration:none; display:block; letter-spacing:-0.2px; }
+.post-card-title:hover { color:#06B6D4; }
+.post-card-excerpt { font-size:14px; color:var(--muted-text); line-height:1.6; margin-bottom:10px;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.post-card-tags { display:flex; gap:6px; flex-wrap:wrap; }
+.post-card-stats { display:flex; gap:20px; font-size:13px; font-weight:500;
+  color:var(--muted-text); margin-top:12px; }
+.stat-like { color:#F43F5E; } .stat-comment { color:#06B6D4; } .stat-bookmark { color:#A855F7; }
+
+/* SIDEBAR */
+.sidebar-section { background:var(--card-bg); padding:20px;
+  box-shadow:16px 16px 0 0 rgba(6,182,212,0.2), 0 0 0 1px var(--border-subtle); margin-bottom:20px; }
+.sidebar-title { font-size:12px;
+  font-weight:400; letter-spacing:0; text-transform:none; color:#06B6D4;
+  margin-bottom:16px; padding-bottom:12px; box-shadow:0 2px 0 0 var(--border-subtle); }
+.sidebar-hot-item { display:flex; align-items:flex-start; gap:10px; padding:10px 0;
+  box-shadow:0 1px 0 0 var(--border-subtle); text-decoration:none; color:inherit; }
+.sidebar-hot-item:last-child { box-shadow:none; }
+.sidebar-hot-rank { font-family:'Space Grotesk','Inter',system-ui,sans-serif; font-size:15px;
+  font-weight:700; width:24px; flex-shrink:0; line-height:1.4; color:var(--muted-text); }
+.sidebar-hot-rank.r1 { color:#F43F5E; } .sidebar-hot-rank.r2 { color:#06B6D4; } .sidebar-hot-rank.r3 { color:#A855F7; }
+.sidebar-hot-text { font-size:13px; font-weight:500; line-height:1.4; color:#F5F0EB;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.sidebar-hot-item:hover .sidebar-hot-text { color:#06B6D4; }
+.sidebar-hot-meta { font-size:11px; color:var(--muted-text); margin-top:2px; }
+.sidebar-author { display:flex; align-items:center; gap:10px; padding:10px 0;
+  text-decoration:none; color:inherit; }
+.sidebar-author-avatar { width:36px; height:36px;
+  clip-path:polygon(20% 0%,80% 0%,100% 20%,100% 80%,80% 100%,20% 100%,0% 80%,0% 20%);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Space Grotesk','Inter',system-ui,sans-serif; font-size:13px; font-weight:700;
+  color:#F5F0EB; flex-shrink:0; }
+.sidebar-author-info { font-size:13px; font-weight:500; color:#F5F0EB; line-height:1.3; }
+.sidebar-author-info small { font-size:11px; color:var(--muted-text); display:block; font-weight:400; }
+.sidebar-author:hover .sidebar-author-info { color:#06B6D4; }
+.sidebar-tag-cloud { display:flex; flex-wrap:wrap; gap:6px; }
+.sidebar-about { font-size:13px; color:var(--muted-text); line-height:1.8; }
+
+/* LOAD MORE */
+.load-more { text-align:center; padding:32px 0; }
+
+/* BOTTOM NAV (mobile) */
+.bottom-nav { display:none; position:fixed; bottom:0; left:0; right:0; height:56px;
+  background:rgba(0,0,0,0.95); align-items:center; justify-content:space-around;
+  box-shadow:0 -4px 0 0 rgba(6,182,212,0.6), 0 -10px 0 0 rgba(244,63,94,0.4), 0 -16px 0 0 rgba(168,85,247,0.2); z-index:100; }
+.bottom-nav a { display:flex; flex-direction:column; align-items:center; gap:2px;
+  font-size:11px; font-weight:600; color:var(--muted-text); text-decoration:none; padding:4px 12px; }
+.bottom-nav a.active { color:var(--primary); }
+
+/* RESPONSIVE */
+@media (max-width:768px) {
+  .pixel-nav { padding:0 16px; } .nav-search { display:none; } .hide-mobile { display:none; }
+  .page-layout { flex-direction:column; padding:0 12px; } .sidebar-col { display:none; }
+  .bottom-nav { display:flex; } body { padding-bottom:64px; }
+}
+:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+
+/* ===== LIGHT MODE ===== */
+.light body::before { background:
+    repeating-linear-gradient(0deg, rgba(168,85,247,0.015) 0px, rgba(168,85,247,0.015) 1px, transparent 1px, transparent 16px),
+    repeating-linear-gradient(90deg, rgba(168,85,247,0.015) 0px, rgba(168,85,247,0.015) 1px, transparent 1px, transparent 16px),
+    radial-gradient(ellipse 60% 40% at 15% 5%, rgba(6,182,212,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 35% at 85% 10%, rgba(244,63,94,0.04) 0%, transparent 60%);
+    pointer-events:none; }
+.light body { background:#FAFAFA; color:#1A1A1A; }
+.light :root { --bg:#FAFAFA; --card-bg:#FFFFFF; --muted-bg:#F5F5F5; --muted-text:#777777; --border-subtle:rgba(0,0,0,0.08); }
+.light .pixel-nav { background:rgba(250,250,250,0.95); }
+.light .nav-brand { color:#1A1A1A; }
+.light .nav-search { background:#F0F0F0; color:#1A1A1A; }
+.light .nav-search::placeholder { color:#999; }
+.light .nav-search:focus { box-shadow:0 0 0 2px #06B6D4; }
+.light .nav-link { color:#888; }
+.light .nav-link:hover { color:#06B6D4; }
+.light .tab { color:#888; }
+.light .tab.active { color:#FFF; background:#06B6D4; }
+.light .tab:hover:not(.active) { color:#1A1A1A; background:#F0F0F0; }
+.light .pixel-card { background:#FFFFFF; box-shadow:16px 16px 0 0 rgba(6,182,212,0.2), 0 0 0 1px rgba(0,0,0,0.06); }
+.light .pixel-card:hover { box-shadow:16px 16px 0 0 rgba(6,182,212,0.5), 32px 32px 0 -16px rgba(244,63,94,0.35), 48px 48px 0 -32px rgba(168,85,247,0.2), 0 0 0 1px rgba(6,182,212,0.2); }
+.light .post-card-user { color:#1A1A1A; }
+.light .post-card-title { color:#1A1A1A; }
+.light .post-card-title:hover { color:#0891B2; }
+.light .post-card-excerpt { color:#666; }
+.light .post-card-time { color:#999; }
+.light .post-card-stats { color:#888; }
+.light .sidebar-section { background:#FFFFFF; box-shadow:16px 16px 0 0 rgba(6,182,212,0.15), 0 0 0 1px rgba(0,0,0,0.06); }
+.light .sidebar-title { color:#0891B2; }
+.light .sidebar-hot-text { color:#1A1A1A; }
+.light .sidebar-hot-meta { color:#999; }
+.light .sidebar-hot-item:hover .sidebar-hot-text,
+.light .sidebar-author:hover .sidebar-author-info { color:#0891B2; }
+.light .sidebar-author-info { color:#1A1A1A; }
+.light .sidebar-about { color:#666; }
+.light .pixel-btn { color:#1A1A1A; background:#FFFFFF; box-shadow:16px 16px 0 0 rgba(6,182,212,0.5); }
+.light .pixel-btn-accent { box-shadow:16px 16px 0 0 rgba(244,63,94,0.5); }
+.light .pixel-btn-subtle { box-shadow:16px 16px 0 0 rgba(6,182,212,0.3); }
+.light .pixel-btn:active { box-shadow:0 0 0 0 rgba(6,182,212,0.5); }
+.light .pixel-tag { background:rgba(6,182,212,0.08); color:#0891B2; }
+.light .pixel-tag-official { background:rgba(168,85,247,0.1); color:#7C3AED; }
+.light .bottom-nav { background:rgba(250,250,250,0.95); }
+
+</style>
+</head>
+<body>
+
+<nav class="pixel-nav">
+  <a href="/" class="nav-brand">
+    <span class="pixel-logo">
+      <span class="px"></span><span class="px on"></span><span class="px on"></span><span class="px on2"></span><span class="px"></span>
+      <span class="px on"></span><span class="px"></span><span class="px"></span><span class="px"></span><span class="px on2"></span>
+      <span class="px on"></span><span class="px"></span><span class="px on3"></span><span class="px"></span><span class="px on"></span>
+      <span class="px on"></span><span class="px"></span><span class="px"></span><span class="px"></span><span class="px on2"></span>
+      <span class="px"></span><span class="px on"></span><span class="px on"></span><span class="px on2"></span><span class="px"></span>
+    </span>
+    bingbingbingo
+  </a>
+  <input class="nav-search" type="text" placeholder="搜索帖子...">
+  <div class="nav-actions">
+    <a href="javascript:void(0)" class="nav-link hide-mobile">标签</a>
+    <a href="javascript:void(0)" class="nav-link nav-notif">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span class="nav-notif-dot"></span>
+    </a>
+    <button onclick="document.documentElement.classList.toggle('light')" class="nav-link" style="background:none;border:none;cursor:pointer;font-size:16px;padding:4px 8px;" title="切换主题">&#9788;</button>
+    <a href="javascript:void(0)" class="pixel-btn pixel-btn-subtle" style="font-size:12px;padding:8px 18px;">登录</a>
+  </div>
+</nav>
+
+<div class="page-layout" style="margin-top:24px;">
+
+  <div class="feed-col">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:20px;">
+      <div class="tabs">
+        <button class="tab active">最新</button>
+        <button class="tab">最热</button>
+        <button class="tab">精华</button>
+      </div>
+      <div style="display:flex;gap:20px;font-size:12px;font-weight:500;color:var(--muted-text);">
+        <span>在线 <span style="color:var(--green)">128</span></span>
+        <span>帖子 <span style="color:var(--primary)">1,024</span></span>
+        <span>冒险者 <span style="color:var(--cyan)">4,096</span></span>
+      </div>
+    </div>
+
+    <div class="post-feed">
+
+<article class="pixel-card"><div class="post-card-row"><div class="post-card-avatar"><div class="avatar-block" style="background:linear-gradient(135deg,var(--primary),var(--cyan))">P</div></div><div class="post-card-body"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span class="post-card-user">PixelMaster</span><span class="post-card-time">2h ago</span></div><a href="#" class="post-card-title">我用 Cursor + Vercel 在 2 小时内部署了一个像素画板</a><p class="post-card-excerpt">周末试了一下 vibe coding，从零到上线只用了 2 小时。分享一下我的 tool stack 和踩坑经验。核心是用 Cursor 生成像素画板逻辑，然后用 Vercel 一键部署。</p><div class="post-card-tags"><span class="pixel-tag">vibe-coding</span><span class="pixel-tag">Cursor</span><span class="pixel-tag-official">作品展示</span></div><div class="post-card-stats"><span class="stat-like">♥ 42</span><span class="stat-comment">◆ 12</span><span class="stat-bookmark">★ 8</span></div></div></div></article>
+
+<article class="pixel-card"><div class="post-card-row"><div class="post-card-avatar"><div class="avatar-block" style="background:linear-gradient(135deg,var(--pink),var(--primary))">V</div></div><div class="post-card-body"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span class="post-card-user">VibeCoder99</span><span class="post-card-time">5h ago</span></div><a href="#" class="post-card-title">求助：AI 生成的 React 组件性能很差怎么办</a><p class="post-card-excerpt">Claude 帮我写的 Dashboard 组件渲染很慢，列表有几百条数据时尤其卡。有没有什么 prompt 技巧可以让 AI 写出性能更好的代码？</p><div class="post-card-tags"><span class="pixel-tag">AI工具</span><span class="pixel-tag">React</span><span class="pixel-tag-official">求助</span></div><div class="post-card-stats"><span class="stat-like">♥ 28</span><span class="stat-comment">◆ 36</span><span class="stat-bookmark">★ 15</span></div></div></div></article>
+
+<article class="pixel-card"><div class="post-card-row"><div class="post-card-avatar"><div class="avatar-block" style="background:linear-gradient(135deg,var(--primary),#C084FC)">R</div></div><div class="post-card-body"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span class="post-card-user">RetroDev</span><span class="post-card-time">8h ago</span></div><a href="#" class="post-card-title">分享一套像素风 CSS 组件库 — 纯 box-shadow 实现</a><p class="post-card-excerpt">最近沉迷像素风格，用纯 CSS box-shadow 做了一套无 JS 的像素 UI 组件。按钮、卡片、输入框、分割线全部像素化。附 CodePen 链接和源码。</p><div class="post-card-tags"><span class="pixel-tag">CSS</span><span class="pixel-tag">UI设计</span><span class="pixel-tag-official">作品展示</span></div><div class="post-card-stats"><span class="stat-like">♥ 156</span><span class="stat-comment">◆ 43</span><span class="stat-bookmark">★ 89</span></div></div></div></article>
+
+<article class="pixel-card"><div class="post-card-row"><div class="post-card-avatar"><div class="avatar-block" style="background:linear-gradient(135deg,var(--pink),#FB7185)">N</div></div><div class="post-card-body"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span class="post-card-user">NewbieCoder</span><span class="post-card-time">12h ago</span></div><a href="#" class="post-card-title">从零开始 Vibe Coding — 一个设计师的转行之路</a><p class="post-card-excerpt">作为设计师以前觉得写代码很难，直到开始用 AI 辅助编程，发现沟通和审美反而是优势。分享一下我第一个上线项目的故事和心得。</p><div class="post-card-tags"><span class="pixel-tag">vibe-coding</span><span class="pixel-tag">经验分享</span></div><div class="post-card-stats"><span class="stat-like">♥ 203</span><span class="stat-comment">◆ 67</span><span class="stat-bookmark">★ 112</span></div></div></div></article>
+
+<article class="pixel-card"><div class="post-card-row"><div class="post-card-avatar"><div class="avatar-block" style="background:linear-gradient(135deg,var(--cyan),var(--primary))">T</div></div><div class="post-card-body"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span class="post-card-user">TerminalFan</span><span class="post-card-time">1d ago</span></div><a href="#" class="post-card-title">Claude Code vs Cursor vs Copilot — 我的三周对比体验</a><p class="post-card-excerpt">三个工具各用了 1 周，从速度、代码质量、上下文理解三个维度对比。结论：不同场景选不同工具，没有银弹。内含详细数据表格。</p><div class="post-card-tags"><span class="pixel-tag">AI工具</span><span class="pixel-tag">技术讨论</span><span class="pixel-tag-official">精华</span></div><div class="post-card-stats"><span class="stat-like">♥ 319</span><span class="stat-comment">◆ 128</span><span class="stat-bookmark">★ 204</span></div></div></div></article>
+
+<article class="pixel-card"><div class="post-card-row"><div class="post-card-avatar"><div class="avatar-block" style="background:linear-gradient(135deg,var(--primary),var(--pink))">D</div></div><div class="post-card-body"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span class="post-card-user">DeployBot</span><span class="post-card-time">1d ago</span></div><a href="#" class="post-card-title">一键部署 Vibe 产物 — 阿里云 FC + GitHub Actions 实践</a><p class="post-card-excerpt">搭了一套自动部署流水线：AI 生成代码 → git push → GitHub Actions → 阿里云 FC。全过程不到 3 分钟上线。附完整 yml 配置。</p><div class="post-card-tags"><span class="pixel-tag">DevOps</span><span class="pixel-tag">部署</span><span class="pixel-tag">阿里云</span></div><div class="post-card-stats"><span class="stat-like">♥ 87</span><span class="stat-comment">◆ 21</span><span class="stat-bookmark">★ 55</span></div></div></div></article>
+
+    </div>
+
+    <div class="load-more">
+      <a href="javascript:void(0)" class="pixel-btn pixel-btn-subtle">加载更多</a>
+    </div>
+  </div>
+
+  <aside class="sidebar-col">
+    <div class="sidebar-section">
+      <div class="sidebar-title">■■ 热榜</div>
+      <a href="#" class="sidebar-hot-item"><span class="sidebar-hot-rank r1">1</span><div><div class="sidebar-hot-text">Claude vs Cursor vs Copilot 三周对比</div><div class="sidebar-hot-meta">♥319 ◆128</div></div></a>
+      <a href="#" class="sidebar-hot-item"><span class="sidebar-hot-rank r2">2</span><div><div class="sidebar-hot-text">从零开始 Vibe Coding 设计师转行之路</div><div class="sidebar-hot-meta">♥203 ◆67</div></div></a>
+      <a href="#" class="sidebar-hot-item"><span class="sidebar-hot-rank r3">3</span><div><div class="sidebar-hot-text">分享一套像素风 CSS 组件库</div><div class="sidebar-hot-meta">♥156 ◆43</div></div></a>
+      <a href="#" class="sidebar-hot-item"><span class="sidebar-hot-rank">4</span><div><div class="sidebar-hot-text">一键部署 Vibe 产物 FC + Actions 实践</div><div class="sidebar-hot-meta">♥87 ◆21</div></div></a>
+      <a href="#" class="sidebar-hot-item"><span class="sidebar-hot-rank">5</span><div><div class="sidebar-hot-text">我用 Cursor + Vercel 2 小时部署画板</div><div class="sidebar-hot-meta">♥42 ◆12</div></div></a>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">◇◇ 推荐作者</div>
+      <a href="#" class="sidebar-author"><div class="sidebar-author-avatar" style="background:linear-gradient(135deg,var(--cyan),var(--primary))">T</div><div class="sidebar-author-info">TerminalFan<small>319 赞 · 原创大牛</small></div></a>
+      <a href="#" class="sidebar-author"><div class="sidebar-author-avatar" style="background:linear-gradient(135deg,var(--primary),#C084FC)">R</div><div class="sidebar-author-info">RetroDev<small>156 赞 · CSS 魔法师</small></div></a>
+      <a href="#" class="sidebar-author"><div class="sidebar-author-avatar" style="background:linear-gradient(135deg,var(--pink),#FB7185)">N</div><div class="sidebar-author-info">NewbieCoder<small>203 赞 · 新人崛起</small></div></a>
+      <a href="#" class="sidebar-author"><div class="sidebar-author-avatar" style="background:linear-gradient(135deg,var(--primary),var(--pink))">D</div><div class="sidebar-author-info">DeployBot<small>87 赞 · 部署达人</small></div></a>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">## 热门标签</div>
+      <div class="sidebar-tag-cloud">
+        <span class="pixel-tag">AI工具</span><span class="pixel-tag">vibe-coding</span>
+        <span class="pixel-tag">Cursor</span><span class="pixel-tag">React</span>
+        <span class="pixel-tag-official">作品展示</span><span class="pixel-tag">CSS</span>
+        <span class="pixel-tag">DevOps</span><span class="pixel-tag">部署</span>
+        <span class="pixel-tag-official">求助</span><span class="pixel-tag">经验分享</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">?? 关于</div>
+      <p class="sidebar-about">面向 Vibe Coding 开发者的垂直社区。分享作品，交流 AI 编程技巧。</p>
+      <div style="margin-top:12px;font-size:12px;color:var(--muted-text);font-weight:500;">
+        在线 <span style="color:var(--green)">128</span> · 帖子 <span style="color:var(--primary)">1,024+</span> · 冒险者 <span style="color:var(--cyan)">4,096</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<nav class="bottom-nav">
+  <a href="#" class="active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>首页</a>
+  <a href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>标签</a>
+  <a href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>通知</a>
+  <a href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>我的</a>
+</nav>
+
+</body>
+</html>
