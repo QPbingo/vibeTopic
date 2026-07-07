@@ -20,8 +20,9 @@ export function ThemeToggle({ theme, onToggle }: ThemeToggleProps) {
     <button
       className="theme-toggle"
       onClick={onToggle}
-      aria-label={theme === 'dark' ? '切换到亮色模式' : '切换到暗色模式'}
-      title={theme === 'dark' ? '切换到亮色模式' : '切换到暗色模式'}
+      aria-label="切换主题"
+      title="切换主题"
+      suppressHydrationWarning
     >
       {theme === 'dark' ? '☀' : '☾'}
     </button>

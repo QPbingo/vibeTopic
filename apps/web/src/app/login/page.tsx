@@ -73,6 +73,12 @@ export default function LoginPage() {
         </form>
 
         <div style={{ marginTop: 16, textAlign: 'center', fontSize: 13, color: 'var(--muted-text)' }}>
+          <Link href="/forgot-password" style={{ color: 'var(--cyan)' }}>
+            忘记密码？
+          </Link>
+        </div>
+
+        <div style={{ marginTop: 8, textAlign: 'center', fontSize: 13, color: 'var(--muted-text)' }}>
           还没有账号？
           <Link href="/register" style={{ color: 'var(--cyan)', marginLeft: 4 }}>
             立即注册

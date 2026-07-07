@@ -21,6 +21,15 @@ const loginSchema = z.object({
   password: z.string().min(1),
 })
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+})
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(8),
+})
+
 authRouter.post('/register', registerLimiter, validate('body', registerSchema), async (req, res) => {
   const result = await authService.register(req.body)
   if (!result.success) return error(res, result.error.code, 400, result.error.message)
@@ -60,6 +69,24 @@ authRouter.post('/refresh', async (req, res) => {
 authRouter.post('/logout', requireAuth, async (req, res) => {
   await authService.logout(req.user!.sub)
   res.clearCookie('refresh_token', { path: '/api/v1/auth' })
+  return success(res, null)
+})
+
+authRouter.post('/forgot-password', validate('body', forgotPasswordSchema), async (req, res) => {
+  if (config.email.enabled) {
+    return error(res, ErrorCodes.INTERNAL_ERROR, 503, '邮件发送服务尚未配置')
+  }
+  const result = await authService.requestPasswordReset(req.body.email)
+  if (!result.success) {
+    const status = result.error.code === ErrorCodes.USER_BANNED ? 403 : 400
+    return error(res, result.error.code, status, result.error.message)
+  }
+  return success(res, result.data)
+})
+
+authRouter.post('/reset-password', validate('body', resetPasswordSchema), async (req, res) => {
+  const result = await authService.resetPassword(req.body.token, req.body.password)
+  if (!result.success) return error(res, result.error.code, 400, result.error.message)
   return success(res, null)
 })
 
