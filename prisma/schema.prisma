@@ -1,0 +1,283 @@
+// ============================================================
+// bingbingbingo — Prisma Schema
+// PostgreSQL 16 + UUID v7 + Full-Text Search
+// ============================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---- Extensions (run manually) ----
+// CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+// CREATE EXTENSION IF NOT EXISTS "pg_bigm";
+// CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+
+// ============================================================
+// 1. User System
+// ============================================================
+
+model User {
+  id                    String    @id @default(uuid()) @db.Uuid
+  username              String    @unique @db.VarChar(30)
+  email                 String    @unique @db.VarChar(255)
+  passwordHash          String?   @map("password_hash") @db.VarChar(255)
+  avatarUrl             String?   @map("avatar_url") @db.VarChar(1024)
+  bio                   String?   @db.Text
+  githubId              String?   @unique @map("github_id") @db.VarChar(50)
+  githubUsername        String?   @map("github_username") @db.VarChar(39)
+  githubUrl             String?   @map("github_url") @db.VarChar(255)
+  refreshToken          String?   @map("refresh_token") @db.Text
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz
+  role                  String    @default("user") @db.VarChar(20) // user | admin
+  status                String    @default("active") @db.VarChar(20) // active | banned | deleted
+  lastLoginAt           DateTime? @map("last_login_at") @db.Timestamptz
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  posts              Post[]
+  comments           Comment[]
+  likes              Like[]
+  bookmarks          Bookmark[]
+  notifications      Notification[] @relation("NotificationReceiver")
+  actedNotifications Notification[] @relation("NotificationActor")
+  projects           Project[]
+  mediaFiles         MediaFile[]
+  userTokens         UserToken[]
+  followers          UserFollow[]   @relation("Follower")
+  followees          UserFollow[]   @relation("Followee")
+
+  @@index([username])
+  @@index([email])
+  @@index([githubId])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model UserFollow {
+  followerId String   @map("follower_id") @db.Uuid
+  followeeId String   @map("followee_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  follower User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followee User @relation("Followee", fields: [followeeId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followeeId])
+  @@index([followeeId])
+  @@index([followerId])
+  @@map("user_follows")
+}
+
+model UserToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash") @db.VarChar(255)
+  type      String    @db.VarChar(20) // email_verify | password_reset
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz
+  usedAt    DateTime? @map("used_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([tokenHash])
+  @@map("user_tokens")
+}
+
+// ============================================================
+// 2. Post System
+// ============================================================
+
+model Post {
+  id            String    @id @default(uuid()) @db.Uuid
+  title         String    @db.VarChar(200)
+  contentMd     String    @map("content_md") @db.Text
+  contentHtml   String    @map("content_html") @db.Text
+  slug          String    @unique @db.VarChar(250)
+  userId        String    @map("user_id") @db.Uuid
+  status        String    @default("pending_review") @db.VarChar(20) // pending_review | published | rejected | hidden | deleted
+  viewCount     Int       @default(0) @map("view_count")
+  likeCount     Int       @default(0) @map("like_count")
+  commentCount  Int       @default(0) @map("comment_count")
+  bookmarkCount Int       @default(0) @map("bookmark_count")
+  isPinned      Boolean   @default(false) @map("is_pinned")
+  editedAt      DateTime? @map("edited_at") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  author    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments  Comment[]
+  bookmarks Bookmark[]
+  postTags  PostTag[]
+
+  @@index([userId])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([slug])
+  @@map("posts")
+}
+
+model Tag {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(50)
+  slug        String   @unique @db.VarChar(50)
+  description String?  @db.Text
+  isOfficial  Boolean  @default(false) @map("is_official")
+  postCount   Int      @default(0) @map("post_count")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  postTags PostTag[]
+
+  @@index([slug])
+  @@index([name])
+  @@map("tags")
+}
+
+model PostTag {
+  postId    String   @map("post_id") @db.Uuid
+  tagId     String   @map("tag_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@index([tagId])
+  @@map("post_tags")
+}
+
+// ============================================================
+// 3. Interaction System
+// ============================================================
+
+model Comment {
+  id          String    @id @default(uuid()) @db.Uuid
+  postId      String    @map("post_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  parentId    String?   @map("parent_id") @db.Uuid
+  rootId      String?   @map("root_id") @db.Uuid
+  contentMd   String    @map("content_md") @db.Text
+  contentHtml String    @map("content_html") @db.Text
+  depth       Int       @default(0)
+  status      String    @default("published") @db.VarChar(20) // published | hidden | deleted
+  likeCount   Int       @default(0) @map("like_count")
+  editedAt    DateTime? @map("edited_at") @db.Timestamptz
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  post          Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent        Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  root          Comment?  @relation("CommentRoot", fields: [rootId], references: [id], onDelete: SetNull)
+  replies       Comment[] @relation("CommentReplies")
+  childComments Comment[] @relation("CommentRoot")
+
+  @@index([postId, rootId, createdAt(sort: Asc)])
+  @@index([userId])
+  @@map("comments")
+}
+
+model Like {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  targetType String   @map("target_type") @db.VarChar(10) // post | comment
+  targetId   String   @map("target_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetType, targetId])
+  @@index([targetType, targetId])
+  @@map("likes")
+}
+
+model Bookmark {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("bookmarks")
+}
+
+// ============================================================
+// 4. Notification System
+// ============================================================
+
+model Notification {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  type       String   @db.VarChar(20) // like | comment | reply | bookmark | follow | system
+  actorId    String?  @map("actor_id") @db.Uuid
+  targetType String?  @map("target_type") @db.VarChar(10) // post | comment
+  targetId   String?  @map("target_id") @db.Uuid
+  content    String?  @db.VarChar(500)
+  isRead     Boolean  @default(false) @map("is_read")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user  User  @relation("NotificationReceiver", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, actorId, type, targetType, targetId])
+  @@index([userId, isRead, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+// ============================================================
+// 5. Project System
+// ============================================================
+
+model Project {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  title       String   @db.VarChar(100)
+  description String?  @db.Text
+  coverImage  String?  @map("cover_image") @db.VarChar(1024)
+  images      Json     @default("[]") @db.JsonB
+  sourceType  String   @default("manual") @map("source_type") @db.VarChar(20) // manual | github | deploy
+  sourceUrl   String?  @map("source_url") @db.VarChar(1024)
+  sourceMeta  Json     @default("{}") @map("source_meta") @db.JsonB
+  sortOrder   Int      @default(0) @map("sort_order")
+  status      String   @default("published") @db.VarChar(20) // published | hidden
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sortOrder(sort: Desc), createdAt(sort: Desc)])
+  @@map("projects")
+}
+
+// ============================================================
+// 6. File Management
+// ============================================================
+
+model MediaFile {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  fileUrl      String   @map("file_url") @db.VarChar(1024)
+  fileType     String   @map("file_type") @db.VarChar(20) // image | other
+  fileSize     BigInt   @map("file_size")
+  mimeType     String?  @map("mime_type") @db.VarChar(100)
+  originalName String?  @map("original_name") @db.VarChar(500)
+  ossObjectKey String   @map("oss_object_key") @db.VarChar(500)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("media_files")
+}

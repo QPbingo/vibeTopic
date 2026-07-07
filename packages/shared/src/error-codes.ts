@@ -1,0 +1,182 @@
+// ============================================================
+// bingbingbingo — Error Codes
+// ============================================================
+
+export const ErrorCodes = {
+  // Success
+  OK: 0,
+
+  // Common (10001-10999)
+  INTERNAL_ERROR: 10001,
+  VALIDATION_ERROR: 10002,
+  RATE_LIMITED: 10003,
+  NOT_FOUND: 10004,
+  FORBIDDEN: 10005,
+  INVALID_REQUEST_BODY: 10006,
+  DATABASE_ERROR: 10007,
+
+  // Auth (11001-11999)
+  INVALID_CREDENTIALS: 11001,
+  USERNAME_TAKEN: 11002,
+  EMAIL_TAKEN: 11003,
+  UNAUTHORIZED: 11004,
+  TOKEN_EXPIRED: 11005,
+  INVALID_PASSWORD_FORMAT: 11006,
+  INVALID_VERIFICATION_CODE: 11007,
+  VERIFICATION_CODE_EXPIRED: 11008,
+  INVALID_EMAIL_FORMAT: 11009,
+  INVALID_USERNAME_FORMAT: 11010,
+  GITHUB_OAUTH_FAILED: 11011,
+  USER_BANNED: 11012,
+  INVALID_REFRESH_TOKEN: 11013,
+  EMAIL_NOT_VERIFIED: 11014,
+  INVALID_VERIFY_TOKEN: 11015,
+  INVALID_RESET_TOKEN: 11016,
+  EMAIL_NOT_REGISTERED: 11017,
+
+  // User (12001-12999)
+  USER_NOT_FOUND: 12001,
+  CANNOT_OPERATE_SELF: 12002,
+  USER_UPDATE_FAILED: 12003,
+  EMAIL_ALREADY_BOUND: 12004,
+  GITHUB_ALREADY_BOUND: 12005,
+
+  // Post (13001-13999)
+  POST_NOT_FOUND: 13001,
+  POST_TITLE_EMPTY: 13002,
+  POST_TITLE_TOO_LONG: 13003,
+  POST_CONTENT_EMPTY: 13004,
+  POST_CONTENT_TOO_LONG: 13005,
+  POST_EDIT_FORBIDDEN: 13006,
+  POST_DELETE_FORBIDDEN: 13007,
+  POST_CONTENT_REJECTED: 13008,
+  POST_UNDER_REVIEW: 13009,
+
+  // Comment (14001-14999)
+  COMMENT_NOT_FOUND: 14001,
+  COMMENT_CONTENT_EMPTY: 14002,
+  COMMENT_CONTENT_TOO_LONG: 14003,
+  COMMENT_POST_INVALID: 14004,
+  COMMENT_DEPTH_EXCEEDED: 14005,
+  COMMENT_PARENT_NOT_FOUND: 14006,
+  COMMENT_DELETE_FORBIDDEN: 14007,
+
+  // Like (15001-15999)
+  ALREADY_LIKED: 15001,
+  NOT_LIKED: 15002,
+  LIKE_TARGET_NOT_FOUND: 15003,
+
+  // Bookmark (16001-16999)
+  ALREADY_BOOKMARKED: 16001,
+  NOT_BOOKMARKED: 16002,
+  BOOKMARK_POST_NOT_FOUND: 16003,
+
+  // Follow (17001-17999)
+  ALREADY_FOLLOWED: 17001,
+  NOT_FOLLOWED: 17002,
+  FOLLOW_TARGET_NOT_FOUND: 17003,
+  CANNOT_FOLLOW_SELF: 17004,
+
+  // Tag (18001-18999)
+  TAG_NOT_FOUND: 18001,
+  TAG_NAME_TAKEN: 18002,
+  TAG_NAME_INVALID: 18003,
+  POST_TAG_LIMIT_EXCEEDED: 18004,
+
+  // Project (19001-19999)
+  PROJECT_NOT_FOUND: 19001,
+  PROJECT_TITLE_EMPTY: 19002,
+  PROJECT_LIMIT_EXCEEDED: 19003,
+  PROJECT_OPERATION_FORBIDDEN: 19004,
+
+  // File (20001-20999)
+  FILE_SIZE_EXCEEDED: 20001,
+  FILE_TYPE_UNSUPPORTED: 20002,
+  UPLOAD_CREDENTIAL_FAILED: 20003,
+  OSS_UPLOAD_FAILED: 20004,
+  FILE_NOT_FOUND: 20005,
+
+  // Notification (21001-21999)
+  NO_UNREAD_NOTIFICATIONS: 21001,
+
+  // Search (22001-22999)
+  SEARCH_KEYWORD_EMPTY: 22001,
+  SEARCH_KEYWORD_TOO_SHORT: 22002,
+} as const
+
+export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes]
+
+export const ErrorMessages: Record<ErrorCode, string> = {
+  [ErrorCodes.OK]: 'ok',
+  [ErrorCodes.INTERNAL_ERROR]: '服务器内部错误',
+  [ErrorCodes.VALIDATION_ERROR]: '参数校验失败',
+  [ErrorCodes.RATE_LIMITED]: '请求过于频繁',
+  [ErrorCodes.NOT_FOUND]: '资源不存在',
+  [ErrorCodes.FORBIDDEN]: '无权限访问',
+  [ErrorCodes.INVALID_REQUEST_BODY]: '请求体格式错误',
+  [ErrorCodes.DATABASE_ERROR]: '数据库操作失败',
+  [ErrorCodes.INVALID_CREDENTIALS]: '用户名或密码错误',
+  [ErrorCodes.USERNAME_TAKEN]: '用户名已存在',
+  [ErrorCodes.EMAIL_TAKEN]: '邮箱已被注册',
+  [ErrorCodes.UNAUTHORIZED]: '未登录',
+  [ErrorCodes.TOKEN_EXPIRED]: '登录已过期',
+  [ErrorCodes.INVALID_PASSWORD_FORMAT]: '密码格式不正确',
+  [ErrorCodes.INVALID_VERIFICATION_CODE]: '验证码错误',
+  [ErrorCodes.VERIFICATION_CODE_EXPIRED]: '验证码已过期',
+  [ErrorCodes.INVALID_EMAIL_FORMAT]: '邮箱格式不正确',
+  [ErrorCodes.INVALID_USERNAME_FORMAT]: '用户名格式不正确',
+  [ErrorCodes.GITHUB_OAUTH_FAILED]: 'GitHub OAuth 授权失败',
+  [ErrorCodes.USER_BANNED]: '用户已被封禁',
+  [ErrorCodes.INVALID_REFRESH_TOKEN]: 'Refresh Token 无效',
+  [ErrorCodes.EMAIL_NOT_VERIFIED]: '邮箱未验证',
+  [ErrorCodes.INVALID_VERIFY_TOKEN]: '验证链接无效或已过期',
+  [ErrorCodes.INVALID_RESET_TOKEN]: '重置密码链接无效或已过期',
+  [ErrorCodes.EMAIL_NOT_REGISTERED]: '邮箱未注册',
+  [ErrorCodes.USER_NOT_FOUND]: '用户不存在',
+  [ErrorCodes.CANNOT_OPERATE_SELF]: '不能操作自己',
+  [ErrorCodes.USER_UPDATE_FAILED]: '用户信息更新失败',
+  [ErrorCodes.EMAIL_ALREADY_BOUND]: '邮箱已被其他用户绑定',
+  [ErrorCodes.GITHUB_ALREADY_BOUND]: 'GitHub 账号已被其他用户绑定',
+  [ErrorCodes.POST_NOT_FOUND]: '帖子不存在',
+  [ErrorCodes.POST_TITLE_EMPTY]: '标题不能为空',
+  [ErrorCodes.POST_TITLE_TOO_LONG]: '标题长度超出限制',
+  [ErrorCodes.POST_CONTENT_EMPTY]: '内容不能为空',
+  [ErrorCodes.POST_CONTENT_TOO_LONG]: '内容长度超出限制',
+  [ErrorCodes.POST_EDIT_FORBIDDEN]: '无权限编辑该帖子',
+  [ErrorCodes.POST_DELETE_FORBIDDEN]: '无权限删除该帖子',
+  [ErrorCodes.POST_CONTENT_REJECTED]: '内容审核未通过',
+  [ErrorCodes.POST_UNDER_REVIEW]: '帖子正在审核中',
+  [ErrorCodes.COMMENT_NOT_FOUND]: '评论不存在',
+  [ErrorCodes.COMMENT_CONTENT_EMPTY]: '评论内容不能为空',
+  [ErrorCodes.COMMENT_CONTENT_TOO_LONG]: '评论内容长度超出限制',
+  [ErrorCodes.COMMENT_POST_INVALID]: '帖子不存在或已删除',
+  [ErrorCodes.COMMENT_DEPTH_EXCEEDED]: '嵌套深度已达上限',
+  [ErrorCodes.COMMENT_PARENT_NOT_FOUND]: '父评论不存在',
+  [ErrorCodes.COMMENT_DELETE_FORBIDDEN]: '无权限删除该评论',
+  [ErrorCodes.ALREADY_LIKED]: '已点赞',
+  [ErrorCodes.NOT_LIKED]: '未点赞',
+  [ErrorCodes.LIKE_TARGET_NOT_FOUND]: '点赞目标不存在',
+  [ErrorCodes.ALREADY_BOOKMARKED]: '已收藏',
+  [ErrorCodes.NOT_BOOKMARKED]: '未收藏',
+  [ErrorCodes.BOOKMARK_POST_NOT_FOUND]: '帖子不存在',
+  [ErrorCodes.ALREADY_FOLLOWED]: '已关注',
+  [ErrorCodes.NOT_FOLLOWED]: '未关注',
+  [ErrorCodes.FOLLOW_TARGET_NOT_FOUND]: '目标用户不存在',
+  [ErrorCodes.CANNOT_FOLLOW_SELF]: '不能关注自己',
+  [ErrorCodes.TAG_NOT_FOUND]: '标签不存在',
+  [ErrorCodes.TAG_NAME_TAKEN]: '标签名称已存在',
+  [ErrorCodes.TAG_NAME_INVALID]: '标签名称格式不正确',
+  [ErrorCodes.POST_TAG_LIMIT_EXCEEDED]: '帖子标签数量超限',
+  [ErrorCodes.PROJECT_NOT_FOUND]: '作品不存在',
+  [ErrorCodes.PROJECT_TITLE_EMPTY]: '作品名称不能为空',
+  [ErrorCodes.PROJECT_LIMIT_EXCEEDED]: '作品数量已达上限',
+  [ErrorCodes.PROJECT_OPERATION_FORBIDDEN]: '无权限操作该作品',
+  [ErrorCodes.FILE_SIZE_EXCEEDED]: '文件大小超出限制',
+  [ErrorCodes.FILE_TYPE_UNSUPPORTED]: '文件类型不支持',
+  [ErrorCodes.UPLOAD_CREDENTIAL_FAILED]: '上传凭证获取失败',
+  [ErrorCodes.OSS_UPLOAD_FAILED]: 'OSS 上传失败',
+  [ErrorCodes.FILE_NOT_FOUND]: '文件不存在',
+  [ErrorCodes.NO_UNREAD_NOTIFICATIONS]: '无未读通知',
+  [ErrorCodes.SEARCH_KEYWORD_EMPTY]: '搜索关键词不能为空',
+  [ErrorCodes.SEARCH_KEYWORD_TOO_SHORT]: '搜索关键词过短',
+} as const
