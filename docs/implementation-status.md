@@ -11,6 +11,8 @@
 - 评论、嵌套深度限制、跨帖子父评论拦截、评论点赞。
 - 标签、搜索、关注、作品 CRUD、通知历史与未读数。
 - SSE 一次性 ticket、连接上限、心跳、通知推送和前端未读计数接入。
+- `/posts/new` bytemd 发帖页面、`/posts/[slug]/edit` rejected 帖子编辑并重新提交页面；导航栏提供发布入口。
+- `/forgot-password`、`/reset-password` 页面与后端 password_reset token 生命周期；本地开发会返回调试 token，生产邮件发送适配未伪装完成。
 - 暗/亮主题、移动底栏、375/768/1024/1440 响应式布局、无横向溢出。
 - 数据库初始化分为容器扩展阶段和 Prisma 建表后的触发器/全文索引阶段。
 
@@ -18,7 +20,7 @@
 
 以下开关默认关闭时有安全的本地降级路径；当前仓库尚未包含对应云厂商 SDK 适配器，不能仅通过把开关改为 `true` 就宣称生产可用：
 
-- `MAIL_ENABLED`：阿里云 DirectMail 邮箱验证/密码重置邮件。
+- `MAIL_ENABLED`：阿里云 DirectMail 邮箱验证/密码重置邮件；启用时密码重置请求会安全返回 503，直到真实邮件适配器接入。
 - `GITHUB_OAUTH_ENABLED`：GitHub OAuth 回调流程。
 - `TURNSTILE_ENABLED`：Cloudflare Turnstile 服务端校验。
 - `CONTENT_AUDIT_ENABLED`：阿里云内容安全异步审核。
@@ -27,8 +29,8 @@
 
 ## 尚未提供的 PRD 页面入口
 
-- 发帖/编辑器页面（含 bytemd 与图片上传交互）。
-- 邮箱验证、忘记密码、重置密码页面。
+- bytemd 图片粘贴/拖拽直传 OSS 交互（当前编辑器支持 Markdown 图片 URL；`OSS_ENABLED=true` 的生产 STS 适配仍未实现）。
+- 邮箱验证页面与注册验证邮件流程。
 - `/settings/account`、作品列表/编辑页、关注/粉丝列表页。
 - 举报入口与管理员隐藏/封禁操作 UI。
 

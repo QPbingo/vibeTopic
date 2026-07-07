@@ -64,6 +64,9 @@ export function Navbar() {
 
         {isAuthenticated ? (
           <>
+            <Link href="/posts/new" className="pixel-btn pixel-btn-accent" style={{ padding: '6px 16px', fontSize: 12 }}>
+              发布
+            </Link>
             <Link href="/notifications" className="nav-link" style={{ fontSize: 13, color: 'var(--muted-text)', textDecoration: 'none', position: 'relative' }}>
               通知
               {unreadCount > 0 && <span aria-label={`${unreadCount} 条未读通知`} style={{ position: 'absolute', top: -8, right: -12, minWidth: 16, padding: '1px 4px', background: 'var(--pink)', color: '#fff', fontSize: 10, textAlign: 'center' }}>{Math.min(unreadCount, 99)}</span>}

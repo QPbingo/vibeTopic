@@ -5,6 +5,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap');
 @import "tailwindcss";
+@import "bytemd/dist/index.css";
 
 /* Zpix pixel font */
 @font-face {
@@ -72,6 +73,128 @@ body {
 }
 .light body {
   color: #1a1a2e;
+}
+
+/* ---- Editor Page ---- */
+.editor-page {
+  width: min(980px, calc(100% - 32px));
+  margin: 32px auto 96px;
+}
+.editor-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-subtle);
+  box-shadow:
+    4px 4px 0 0 var(--cyan),
+    8px 8px 0 0 rgba(6,182,212,0.4),
+    12px 12px 0 0 rgba(244,63,94,0.25),
+    16px 16px 0 0 rgba(168,85,247,0.15);
+  padding: 28px;
+}
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+.editor-header h1 {
+  font: 700 28px/1.2 'Inter', system-ui, sans-serif;
+  margin-top: 6px;
+}
+.editor-kicker,
+.field-label,
+.editor-row span {
+  font-family: 'Zpix', 'Space Grotesk', monospace;
+  -webkit-font-smoothing: none;
+}
+.editor-kicker {
+  color: var(--cyan);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+.field-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted-text);
+  font-size: 12px;
+}
+.editor-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: baseline;
+  margin-top: 16px;
+}
+.editor-row span {
+  color: var(--muted-text);
+  font-size: 11px;
+}
+.editor-input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--border-subtle);
+  background: var(--muted-bg);
+  color: inherit;
+  padding: 10px 12px;
+  font: 500 15px/1.4 'Inter', system-ui, sans-serif;
+  outline: none;
+}
+.editor-input:focus-visible,
+.bytemd-shell:focus-within {
+  box-shadow: 0 0 0 2px var(--cyan), 4px 4px 0 0 rgba(6,182,212,0.35);
+}
+.form-error {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 1px solid rgba(244,63,94,0.45);
+  background: rgba(244,63,94,0.1);
+  color: var(--pink);
+}
+.bytemd-shell {
+  border: 1px solid var(--border-subtle);
+  background: var(--muted-bg);
+  overflow: hidden;
+}
+.bytemd,
+.bytemd-toolbar,
+.bytemd-status,
+.CodeMirror,
+.bytemd-preview {
+  border-color: var(--border-subtle) !important;
+  background: var(--muted-bg) !important;
+  color: inherit !important;
+}
+.bytemd {
+  height: min(66vh, 680px);
+}
+.bytemd-toolbar,
+.bytemd-status {
+  font-family: 'Zpix', 'Space Grotesk', monospace;
+}
+.bytemd-toolbar-icon {
+  color: var(--muted-text);
+}
+.bytemd-toolbar-icon:hover {
+  color: var(--cyan);
+  background: rgba(6,182,212,0.12) !important;
+}
+.CodeMirror pre.CodeMirror-line,
+.bytemd-preview {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.light .bytemd-toolbar,
+.light .bytemd-status,
+.light .CodeMirror,
+.light .bytemd-preview {
+  background: #fff !important;
+}
+@media (max-width: 768px) {
+  .editor-page { width: calc(100% - 24px); margin-top: 24px; }
+  .editor-card { padding: 18px; }
+  .editor-header { flex-direction: column; }
+  .editor-header .pixel-btn { width: 100%; text-align: center; }
+  .editor-row { flex-direction: column; gap: 4px; }
+  .bytemd { height: 70vh; }
 }
 
 /* ---- UI Chrome Layer: Pixel Font ---- */
@@ -545,6 +668,38 @@ body::after {
 .light .auth-input { color: #1a1a2e; background: #F5F5F5; }
 .auth-input:focus { border-color: var(--cyan); box-shadow: 3px 3px 0 0 rgba(6, 182, 212, 0.3); }
 .auth-input::placeholder { color: var(--muted-text); }
+.auth-title {
+  font-family: 'Zpix', 'Space Grotesk', monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--cyan);
+  margin-bottom: 24px;
+  text-align: center;
+}
+.auth-alert {
+  padding: 12px;
+  margin-bottom: 16px;
+  background: rgba(244,63,94,0.1);
+  border: 1px solid rgba(244,63,94,0.3);
+  font-size: 13px;
+  color: var(--pink);
+}
+.auth-alert-success {
+  background: rgba(16,185,129,0.1);
+  border-color: rgba(16,185,129,0.3);
+  color: var(--green);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible {
   outline: 3px solid var(--gold);

@@ -189,6 +189,58 @@ export const authService = {
     })
   },
 
+  async requestPasswordReset(email: string): Promise<ServiceResult<{ resetToken?: string }>> {
+    if (!validateEmail(email)) return { success: false, error: { code: ErrorCodes.INVALID_EMAIL_FORMAT, message: '邮箱格式不正确' } }
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user || user.status === 'deleted') {
+      return { success: false, error: { code: ErrorCodes.EMAIL_NOT_REGISTERED, message: '邮箱未注册' } }
+    }
+    if (user.status === 'banned') return { success: false, error: { code: ErrorCodes.USER_BANNED, message: '用户已被封禁' } }
+
+    const resetToken = crypto.randomBytes(24).toString('hex')
+    await prisma.userToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashToken(resetToken),
+        type: 'password_reset',
+        expiresAt: new Date(Date.now() + config.email.resetTokenTTL * 1000),
+      },
+    })
+
+    // Email delivery adapter is intentionally not faked. Local/dev returns the token for manual testing.
+    return { success: true, data: config.email.enabled ? {} : { resetToken } }
+  },
+
+  async resetPassword(resetToken: string, password: string): Promise<ServiceResult<null>> {
+    const passErr = validatePassword(password)
+    if (passErr) return { success: false, error: { code: ErrorCodes.INVALID_PASSWORD_FORMAT, message: passErr } }
+
+    const token = await prisma.userToken.findUnique({
+      where: { tokenHash: hashToken(resetToken) },
+      include: { user: true },
+    })
+    if (
+      !token ||
+      token.type !== 'password_reset' ||
+      token.usedAt ||
+      token.expiresAt < new Date() ||
+      token.user.status !== 'active'
+    ) {
+      return { success: false, error: { code: ErrorCodes.INVALID_RESET_TOKEN, message: '重置密码链接无效或已过期' } }
+    }
+
+    await prisma.userToken.update({ where: { id: token.id }, data: { usedAt: new Date() } })
+    await prisma.user.update({
+      where: { id: token.userId },
+      data: {
+        passwordHash: hashPassword(password),
+        refreshToken: null,
+        refreshTokenExpiresAt: null,
+      },
+    })
+    return { success: true, data: null }
+  },
+
   async getSSETicket(userId: string): Promise<SSETicket> {
     const ticket = signSSETicket(userId)
     return { ticket, expiresIn: AppConfig.SSE_TICKET_EXPIRES_IN, sseUrl: config.sse.publicUrl }

@@ -12,7 +12,11 @@
   },
   "dependencies": {
     "@bingo/shared": "workspace:*",
+    "@bytemd/plugin-gfm": "^1.22.0",
+    "@bytemd/plugin-highlight": "^1.22.0",
+    "@bytemd/react": "^1.22.0",
     "@tailwindcss/postcss": "^4.3.2",
+    "bytemd": "^1.22.0",
     "next": "^15.1.0",
     "next-themes": "^0.4.0",
     "react": "^19.0.0",
