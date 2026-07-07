@@ -14,7 +14,7 @@ import type { Post } from '@bingo/shared'
 export function PostDetailClient({ initialPost }: { initialPost: Post }) {
   const slug = initialPost.slug
   const router = useRouter()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
 
   const post = initialPost
   const [isLiked, setIsLiked] = useState(initialPost.isLiked || false)
@@ -95,6 +95,14 @@ export function PostDetailClient({ initialPost }: { initialPost: Post }) {
               {post.tags.map(tag => (
                 <PixelTag key={tag.id} {...tag} />
               ))}
+            </div>
+          )}
+
+          {user?.id === post.userId && post.status === 'rejected' && (
+            <div style={{ marginBottom: 16 }}>
+              <Link href={`/posts/${post.slug}/edit`} className="pixel-btn" style={{ display: 'inline-block', padding: '6px 14px', fontSize: 12 }}>
+                编辑并重新提交
+              </Link>
             </div>
           )}
 
