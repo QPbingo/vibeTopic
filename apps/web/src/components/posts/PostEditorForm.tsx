@@ -31,10 +31,11 @@ function parseTags(tagsText: string): string[] {
   const tags: string[] = []
   for (const rawTag of tagsText.split(',')) {
     const tag = rawTag.trim()
-    const key = tag.toLocaleLowerCase()
+    const key = tag.toLowerCase()
     if (!tag || seen.has(key)) continue
     seen.add(key)
     tags.push(tag)
+    if (tags.length >= 5) break
   }
   return tags
 }
@@ -75,12 +76,17 @@ export function PostEditorForm({ mode, initialPost }: PostEditorFormProps) {
     setIsSubmitting(true)
     try {
       const body = { title: trimmedTitle, contentMd: trimmedContent, tags: parseTags(tagsText) }
-      const response = mode === 'create'
-        ? await api.post<SavedPost>('/posts', body)
-        : await api.patch<SavedPost>(`/posts/${initialPost!.id}`, body)
-      const saved = mode === 'edit'
-        ? (await api.post<SavedPost>(`/posts/${initialPost!.id}/resubmit`)).data ?? response.data
-        : response.data
+      let saved: SavedPost | null = null
+      if (mode === 'create') {
+        const response = await api.post<SavedPost>('/posts', body)
+        saved = response.data
+      } else {
+        // In edit mode: save content first, then resubmit for review
+        const patchRes = await api.patch<SavedPost>(`/posts/${initialPost!.id}`, body)
+        if (!patchRes.data) throw new Error('保存失败')
+        const resubmitRes = await api.post<SavedPost>(`/posts/${initialPost!.id}/resubmit`)
+        saved = resubmitRes.data ?? patchRes.data
+      }
       router.push(saved?.slug ? `/posts/${saved.slug}` : '/')
     } catch (err) {
       setError(err instanceof Error ? err.message : '提交失败，请稍后重试')

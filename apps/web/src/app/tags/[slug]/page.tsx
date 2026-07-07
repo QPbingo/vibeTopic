@@ -22,7 +22,7 @@ export default function TagPage() {
   useEffect(() => {
     api.get<TagPageData>(`/tags/${slug}`).then(res => {
       if (res.data) setTag(res.data.tag)
-    }).catch(() => {})
+    }).catch(() => { /* tag metadata fetch failed, non-critical */ })
   }, [slug])
 
   const fetchPosts = useCallback(async (cursor?: string) => {
@@ -32,7 +32,7 @@ export default function TagPage() {
     return res.data ?? { items: [], cursor: null, hasMore: false }
   }, [slug])
 
-  const { items, isLoading, hasMore, loaderRef } = useInfiniteScroll<PostCardType>({
+  const { items, isLoading, hasMore, error, loaderRef } = useInfiniteScroll<PostCardType>({
     fetchFn: fetchPosts,
     enabled: true,
   })
@@ -66,7 +66,12 @@ export default function TagPage() {
 
           {isLoading && <div className="skeleton" style={{ height: 120 }} />}
 
-          {!isLoading && items.length === 0 && (
+          {error && !isLoading && (
+            <div style={{ padding: 20, textAlign: 'center', color: 'var(--pink)', fontSize: 13, marginBottom: 16 }}>
+              加载失败，请刷新重试
+            </div>
+          )}
+          {!isLoading && !error && items.length === 0 && (
             <div style={{ padding: 60, textAlign: 'center', color: 'var(--muted-text)' }}>
               该标签下暂无帖子
             </div>

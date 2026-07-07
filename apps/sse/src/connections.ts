@@ -50,9 +50,17 @@ export class ConnectionPool {
     const userConns = this.connections.get(userId)
     if (!userConns) return
     for (const res of userConns) {
-      if (id) res.write(`id: ${id}\n`)
-      res.write(`event: ${event}\n`)
-      res.write(`data: ${data}\n\n`)
+      if (!res.writable || res.destroyed) {
+        this.remove(userId, res)
+        continue
+      }
+      try {
+        if (id) res.write(`id: ${id}\n`)
+        res.write(`event: ${event}\n`)
+        res.write(`data: ${data}\n\n`)
+      } catch {
+        this.remove(userId, res)
+      }
     }
   }
 

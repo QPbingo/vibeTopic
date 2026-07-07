@@ -7,6 +7,7 @@ import { api } from '@/lib/api'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Comment } from '@bingo/shared'
+import { getTimeAgo } from '@/lib/utils'
 
 interface CommentCardProps {
   comment: Comment
@@ -110,15 +111,3 @@ export function CommentCard({ comment, onReply, depth = 0, maxDepth = 2 }: Comme
   )
 }
 
-function getTimeAgo(dateStr: string): string {
-  const now = Date.now()
-  const diff = now - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return '刚刚'
-  if (mins < 60) return `${mins}分钟前`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}小时前`
-  const days = Math.floor(hours / 24)
-  if (days < 30) return `${days}天前`
-  return `${Math.floor(days / 30)}个月前`
-}

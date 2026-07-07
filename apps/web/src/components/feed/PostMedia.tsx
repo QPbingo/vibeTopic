@@ -1,9 +1,11 @@
 /* User-uploaded media dimensions are intentionally controlled by the pixel grid CSS. */
 /* eslint-disable @next/next/no-img-element */
+import Link from 'next/link'
 import type { PostMedia as PostMediaType } from '@bingo/shared'
 
 interface PostMediaProps {
   media: PostMediaType[]
+  postSlug?: string
 }
 
 export function PostMedia({ media }: PostMediaProps) {
@@ -12,7 +14,7 @@ export function PostMedia({ media }: PostMediaProps) {
   // Video
   const firstVideo = media.find(m => m.type === 'video')
   if (firstVideo) {
-    return (
+    const videoEl = (
       <div className="post-media post-media-video">
         <div
           className={`media-img media-ph-4`}
@@ -26,6 +28,10 @@ export function PostMedia({ media }: PostMediaProps) {
         )}
       </div>
     )
+    if (postSlug) {
+      return <Link href={`/posts/${postSlug}`} style={{ textDecoration: 'none' }}>{videoEl}</Link>
+    }
+    return videoEl
   }
 
   // Images

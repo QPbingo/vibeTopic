@@ -1,0 +1,66 @@
+# =============================================================================
+# bingbingbingo — 测试服基础设施
+# 部署: docker compose up -d
+# =============================================================================
+#
+# 包含服务:
+#   postgres — PostgreSQL 16  (端口 5432)
+#   redis    — Redis 7        (端口 6379)
+#   minio    — MinIO 对象存储  (API:9000, 控制台:9001)
+#
+# 密码统一使用测试环境默认值，生产环境请务必更换。
+# =============================================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bingo-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bingbingbingo
+      POSTGRES_PASSWORD: bingo_test_pg_2024
+      POSTGRES_DB: bingbingbingo
+    ports:
+      - '5432:5432'
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bingbingbingo']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: bingo-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass bingo_test_redis_2024 --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', '--no-auth-warning', '-a', 'bingo_test_redis_2024', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: bingo-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: bingo_admin
+      MINIO_ROOT_PASSWORD: bingo_test_minio_2024
+    ports:
+      - '9000:9000'   # S3 API
+      - '9001:9001'   # Web 控制台
+    volumes:
+      - minio_data:/data
+
+volumes:
+  pg_data:
+  redis_data:
+  minio_data:

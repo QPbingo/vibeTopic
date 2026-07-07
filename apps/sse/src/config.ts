@@ -2,7 +2,7 @@
 // bingbingbingo SSE — Configuration
 // 所有外部服务配置集中在 @bingo/shared 的 ServiceConfig 中
 // ============================================================
-import { SSEConfig, AppBaseConfig } from '@bingo/shared'
+import { SSEConfig, AppBaseConfig, JWTConfig } from '@bingo/shared'
 
 export const config = {
   port: SSEConfig.port,
@@ -13,6 +13,7 @@ export const config = {
   heartbeatInterval: SSEConfig.heartbeatInterval,
   maxConnectionsPerUser: SSEConfig.maxConnectionsPerUser,
   maxConnections: SSEConfig.maxConnections,
+  ticketIssuer: JWTConfig.issuer,
 } as const
 
 if (config.nodeEnv === 'production') {

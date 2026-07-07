@@ -1,13 +1,17 @@
 import { Router } from 'express'
+import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { requireAuth } from '../middleware/auth.js'
+import { validate } from '../middleware/validate.js'
 import { success, error } from '../lib/response.js'
 import { ErrorCodes } from '@bingo/shared'
 import { notificationService } from '../services/notification.service.js'
 
 export const followRouter = Router()
 
-followRouter.post('/', requireAuth, async (req, res) => {
+const followSchema = z.object({ targetUserId: z.string().uuid() })
+
+followRouter.post('/', requireAuth, validate('body', followSchema), async (req, res) => {
   const { targetUserId } = req.body
   const userId = req.user!.sub
   if (!targetUserId) return error(res, ErrorCodes.VALIDATION_ERROR, 400)
@@ -20,7 +24,7 @@ followRouter.post('/', requireAuth, async (req, res) => {
   if (existing) return error(res, ErrorCodes.ALREADY_FOLLOWED, 400)
 
   await prisma.userFollow.create({ data: { followerId: userId, followeeId: targetUserId } })
-  await notificationService.create({ userId: targetUserId, type: 'follow', actorId: userId, content: '关注了你' }).catch(() => {})
+  await notificationService.create({ userId: targetUserId, type: 'follow', actorId: userId, content: '关注了你' }).catch(() => { console.error('[notification] follow notification failed') })
   return success(res, null, 201)
 })
 

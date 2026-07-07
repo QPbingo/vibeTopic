@@ -1,0 +1,219 @@
+# =============================================================================
+# bingbingbingo — Production Docker Compose
+# 直接部署到云服务器: docker compose -f docker-compose.prod.yml up -d
+# =============================================================================
+#
+# 部署前准备:
+#   1. 修改下方所有 ****_CHANGE_ME_**** 占位符为强随机字符串
+#   2. 生成密钥: openssl rand -hex 32
+#   3. 配置域名 DNS 解析到服务器 IP
+#   4. 确保服务器已安装 Docker + Docker Compose v2
+#
+# 服务清单:
+#   postgres  — PostgreSQL 16 (数据库)
+#   redis     — Redis 7 (限流)
+#   minio     — MinIO (文件存储，本地 S3)
+#   api       — Express API 服务 (内部，端口 8080)
+#   web       — Next.js 前端 (暴露端口 3000，建议前置 nginx/Caddy)
+#   sse       — SSE 实时推送 (内部，端口 3001)
+#
+# 外部暴露: 仅 web (3000)，建议用 nginx/Caddy 反代 + SSL
+# 内部网络: 172.20.0.0/16 (所有容器互通)
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # PostgreSQL 16 — 主数据库
+  # ===========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: bingo-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bingbingbingo
+      POSTGRES_PASSWORD: ****_CHANGE_ME_PG_PASSWORD_****
+      POSTGRES_DB: bingbingbingo
+    ports:
+      - '127.0.0.1:5432:5432'   # 仅本地访问，不暴露公网
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bingbingbingo -d bingbingbingo']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - bingo-net
+
+  # ===========================================================================
+  # Redis 7 — 限流 & 缓存
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: bingo-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ****_CHANGE_ME_REDIS_PASSWORD_****
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    ports:
+      - '127.0.0.1:6379:6379'   # 仅本地访问
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', '--no-auth-warning', '-a', '****_CHANGE_ME_REDIS_PASSWORD_****', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bingo-net
+
+  # ===========================================================================
+  # MinIO — 对象存储（兼容 S3，替代阿里云 OSS）
+  # ===========================================================================
+  minio:
+    image: minio/minio:latest
+    container_name: bingo-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: bingo_admin
+      MINIO_ROOT_PASSWORD: ****_CHANGE_ME_MINIO_PASSWORD_****
+    ports:
+      - '127.0.0.1:9000:9000'   # S3 API（内部用）
+      - '127.0.0.1:9001:9001'   # Web 控制台（内部管理）
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bingo-net
+
+  # ===========================================================================
+  # API 服务 — Express 后端
+  # ===========================================================================
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: bingo-api
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:8080:8080'
+    environment:
+      NODE_ENV: production
+      PORT: '8080'
+      # 数据库 — 使用容器内 hostname
+      DATABASE_URL: postgresql://bingbingbingo:****_CHANGE_ME_PG_PASSWORD_****@postgres:5432/bingbingbingo
+      DB_SSL_MODE: disable
+      # JWT
+      JWT_SECRET: ****_CHANGE_ME_JWT_SECRET_32_CHARS_****
+      JWT_ACCESS_EXPIRES_IN: '1800'
+      JWT_REFRESH_EXPIRES_IN: '604800'
+      JWT_ISSUER: bingbingbingo
+      # Redis
+      REDIS_ENABLED: 'true'
+      UPSTASH_REDIS_URL: redis://default:****_CHANGE_ME_REDIS_PASSWORD_****@redis:6379
+      # SSE 推送（容器内通信）
+      SSE_SERVICE_URL: http://sse:3001
+      SSE_TICKET_SECRET: ****_CHANGE_ME_SSE_TICKET_SECRET_32_CHARS_****
+      INTERNAL_PUSH_SECRET: ****_CHANGE_ME_INTERNAL_PUSH_SECRET_32_CHARS_****
+      # 文件上传 — 使用 MinIO
+      OSS_ENABLED: 'true'
+      OSS_ENDPOINT: http://minio:9000
+      OSS_BUCKET: bingbingbingo
+      OSS_REGION: us-east-1
+      OSS_CDN_DOMAIN: https://cdn.YOUR-DOMAIN.com
+      # 邮件（本地先关掉）
+      MAIL_ENABLED: 'false'
+      # GitHub OAuth（先关掉）
+      GITHUB_OAUTH_ENABLED: 'false'
+      # 内容审核（先关掉）
+      CONTENT_AUDIT_ENABLED: 'false'
+      # Turnstile（先关掉）
+      TURNSTILE_ENABLED: 'false'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      sse:
+        condition: service_started
+    networks:
+      - bingo-net
+
+  # ===========================================================================
+  # Web 前端 — Next.js
+  # ===========================================================================
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_APP_NAME: bingbingbingo
+        NEXT_PUBLIC_SITE_URL: https://YOUR-DOMAIN.com
+        NEXT_PUBLIC_API_BASE_URL: https://YOUR-DOMAIN.com/api/v1
+        NEXT_PUBLIC_SSE_URL: https://YOUR-DOMAIN.com
+    container_name: bingo-web
+    restart: unless-stopped
+    ports:
+      - '3000:3000'            # 暴露端口，建议前置 nginx/Caddy
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      # 以下变量在 build 时通过 ARG 注入，运行时可选覆盖
+      NEXT_PUBLIC_API_BASE_URL: https://YOUR-DOMAIN.com/api/v1
+      NEXT_PUBLIC_SSE_URL: https://YOUR-DOMAIN.com
+    depends_on:
+      - api
+    networks:
+      - bingo-net
+
+  # ===========================================================================
+  # SSE 推送服务
+  # ===========================================================================
+  sse:
+    build:
+      context: .
+      dockerfile: apps/sse/Dockerfile
+    container_name: bingo-sse
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:3001:3001'
+    environment:
+      NODE_ENV: production
+      SSE_PORT: '3001'
+      SSE_TICKET_SECRET: ****_CHANGE_ME_SSE_TICKET_SECRET_32_CHARS_****
+      SSE_TICKET_EXPIRES_IN: '60'
+      INTERNAL_PUSH_SECRET: ****_CHANGE_ME_INTERNAL_PUSH_SECRET_32_CHARS_****
+      SSE_HEARTBEAT_INTERVAL: '30'
+      SSE_MAX_CONNECTIONS_PER_USER: '5'
+      SSE_MAX_CONNECTIONS: '10000'
+    networks:
+      - bingo-net
+
+# =============================================================================
+# Volumes & Network
+# =============================================================================
+volumes:
+  pg_data:
+    name: bingo_pg_data
+  redis_data:
+    name: bingo_redis_data
+  minio_data:
+    name: bingo_minio_data
+
+networks:
+  bingo-net:
+    name: bingo_net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

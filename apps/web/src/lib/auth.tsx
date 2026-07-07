@@ -67,6 +67,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (res.data) {
       setAccessToken(res.data.accessToken)
       setUser(res.data.user)
+    } else {
+      throw new Error(res.message || '登录失败，请重试')
     }
   }, [])
 
@@ -75,6 +77,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (res.data) {
       setAccessToken(res.data.accessToken)
       setUser(res.data.user)
+    } else {
+      throw new Error(res.message || '注册失败，请重试')
     }
   }, [])
 

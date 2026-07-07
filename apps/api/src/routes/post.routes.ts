@@ -53,7 +53,7 @@ postRouter.get('/:slug', optionalAuth, async (req, res) => {
 postRouter.patch('/:id', requireAuth, validate('body', updatePostSchema), async (req, res) => {
   const result = await postService.update(req.params.id as string, req.user!.sub, req.body)
   if (!result.success) {
-    const status = result.error.code === 13006 ? 403 : 400
+    const status = result.error.code === ErrorCodes.POST_EDIT_FORBIDDEN ? 403 : 400
     return error(res, result.error.code, status, result.error.message)
   }
   return success(res, result.data)
@@ -62,7 +62,7 @@ postRouter.patch('/:id', requireAuth, validate('body', updatePostSchema), async 
 postRouter.delete('/:id', requireAuth, async (req, res) => {
   const result = await postService.delete(req.params.id as string, req.user!.sub, req.user!.role)
   if (!result.success) {
-    const status = result.error.code === 13007 ? 403 : 404
+    const status = result.error.code === ErrorCodes.POST_DELETE_FORBIDDEN ? 403 : 404
     return error(res, result.error.code, status, result.error.message)
   }
   return success(res, null)
@@ -71,7 +71,7 @@ postRouter.delete('/:id', requireAuth, async (req, res) => {
 postRouter.post('/:id/resubmit', requireAuth, async (req, res) => {
   const result = await postService.resubmit(req.params.id as string, req.user!.sub)
   if (!result.success) {
-    const status = result.error.code === 13006 ? 403 : 400
+    const status = result.error.code === ErrorCodes.POST_EDIT_FORBIDDEN ? 403 : 400
     return error(res, result.error.code, status, result.error.message)
   }
   return success(res, result.data)

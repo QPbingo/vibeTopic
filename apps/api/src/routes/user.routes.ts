@@ -101,10 +101,10 @@ userRouter.get('/me/posts', requireAuth, async (req, res) => {
   const take = limit + 1
   const cursor = req.query.cursor as string | undefined
   const where: Record<string, unknown> = { userId: req.user!.sub }
-  if (cursor) where.id = { lt: cursor }
 
   const posts = await prisma.post.findMany({
-    where, orderBy: { createdAt: 'desc' }, take,
+    where, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     include: { postTags: { include: { tag: true } } },
   })
 

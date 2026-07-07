@@ -150,7 +150,15 @@ export const authService = {
       if (!user || !user.refreshToken) return { success: false, error: { code: ErrorCodes.INVALID_REFRESH_TOKEN, message: 'Refresh Token 无效' } }
       if (user.status === 'banned') return { success: false, error: { code: ErrorCodes.USER_BANNED, message: '用户已被封禁' } }
       if (user.status === 'deleted') return { success: false, error: { code: ErrorCodes.INVALID_REFRESH_TOKEN, message: 'Refresh Token 无效' } }
-      if (hashToken(refreshTokenStr) !== user.refreshToken) return { success: false, error: { code: ErrorCodes.INVALID_REFRESH_TOKEN, message: 'Refresh Token 无效' } }
+      // Token reuse detection: if stored hash doesn't match, the token was already rotated
+      // This indicates potential token theft — revoke all tokens for this user
+      if (hashToken(refreshTokenStr) !== user.refreshToken) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { refreshToken: null, refreshTokenExpiresAt: null },
+        })
+        return { success: false, error: { code: ErrorCodes.INVALID_REFRESH_TOKEN, message: 'Refresh Token 无效' } }
+      }
       if (user.refreshTokenExpiresAt && user.refreshTokenExpiresAt < new Date()) return { success: false, error: { code: ErrorCodes.TOKEN_EXPIRED, message: '登录已过期，请重新登录' } }
 
       const accessToken = signAccessToken(user.id, user.role)
@@ -192,10 +200,10 @@ export const authService = {
   async requestPasswordReset(email: string): Promise<ServiceResult<{ resetToken?: string }>> {
     if (!validateEmail(email)) return { success: false, error: { code: ErrorCodes.INVALID_EMAIL_FORMAT, message: '邮箱格式不正确' } }
     const user = await prisma.user.findUnique({ where: { email } })
-    if (!user || user.status === 'deleted') {
-      return { success: false, error: { code: ErrorCodes.EMAIL_NOT_REGISTERED, message: '邮箱未注册' } }
+    // Don't leak account existence — return identical response for all cases
+    if (!user || user.status === 'deleted' || user.status === 'banned') {
+      return { success: true, data: {} }
     }
-    if (user.status === 'banned') return { success: false, error: { code: ErrorCodes.USER_BANNED, message: '用户已被封禁' } }
 
     const resetToken = crypto.randomBytes(24).toString('hex')
     await prisma.userToken.create({

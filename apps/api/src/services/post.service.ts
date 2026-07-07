@@ -118,7 +118,7 @@ export const postService = {
     if (input.title.length > AppConfig.POST_TITLE_MAX_LENGTH) return { success: false, error: { code: ErrorCodes.POST_TITLE_TOO_LONG, message: `标题不能超过${AppConfig.POST_TITLE_MAX_LENGTH}个字符` } }
     if (!input.contentMd?.trim()) return { success: false, error: { code: ErrorCodes.POST_CONTENT_EMPTY, message: '内容不能为空' } }
     if (input.contentMd.length > AppConfig.POST_CONTENT_MAX_LENGTH) return { success: false, error: { code: ErrorCodes.POST_CONTENT_TOO_LONG, message: `内容不能超过${AppConfig.POST_CONTENT_MAX_LENGTH}个字符` } }
-    const tags = [...new Map((input.tags || []).map(tag => [tag.trim().toLocaleLowerCase(), tag.trim()])).values()]
+    const tags = [...new Map((input.tags || []).map(tag => [tag.trim().toLowerCase(), tag.trim()])).values()]
     if (tags.length > AppConfig.POST_TAG_MAX_COUNT) return { success: false, error: { code: ErrorCodes.POST_TAG_LIMIT_EXCEEDED, message: `每帖最多${AppConfig.POST_TAG_MAX_COUNT}个标签` } }
     if (tags.some(tag => tag.length < AppConfig.TAG_NAME_MIN_LENGTH || tag.length > AppConfig.TAG_NAME_MAX_LENGTH)) {
       return { success: false, error: { code: ErrorCodes.TAG_NAME_INVALID, message: `标签名称需为${AppConfig.TAG_NAME_MIN_LENGTH}-${AppConfig.TAG_NAME_MAX_LENGTH}个字符` } }
@@ -192,9 +192,12 @@ export const postService = {
     if (post.status !== 'published') return { success: false, error: { code: ErrorCodes.POST_NOT_FOUND, message: '帖子不存在' } }
     const existing = await prisma.like.findUnique({ where: { userId_targetType_targetId: { userId, targetType: 'post', targetId: postId } } })
     if (existing) return { success: false, error: { code: ErrorCodes.ALREADY_LIKED, message: '已点赞' } }
-    await prisma.like.create({ data: { userId, targetType: 'post', targetId: postId } })
+    await prisma.$transaction([
+      prisma.like.create({ data: { userId, targetType: 'post', targetId: postId } }),
+      prisma.post.update({ where: { id: postId }, data: { likeCount: { increment: 1 } } }),
+    ])
     if (post.userId !== userId) {
-      await notificationService.create({ userId: post.userId, type: 'like', actorId: userId, targetType: 'post', targetId: postId, content: '点赞了你的帖子' }).catch(() => {})
+      await notificationService.create({ userId: post.userId, type: 'like', actorId: userId, targetType: 'post', targetId: postId, content: '点赞了你的帖子' }).catch(() => { console.error('[notification] like notification failed:', postId) })
     }
     return { success: true, data: null }
   },
@@ -202,7 +205,10 @@ export const postService = {
   async unlike(postId: string, userId: string): Promise<ServiceResult<null>> {
     const existing = await prisma.like.findUnique({ where: { userId_targetType_targetId: { userId, targetType: 'post', targetId: postId } } })
     if (!existing) return { success: false, error: { code: ErrorCodes.NOT_LIKED, message: '未点赞' } }
-    await prisma.like.delete({ where: { id: existing.id } })
+    await prisma.$transaction([
+      prisma.like.delete({ where: { id: existing.id } }),
+      prisma.post.update({ where: { id: postId }, data: { likeCount: { decrement: 1 } } }),
+    ])
     return { success: true, data: null }
   },
 
@@ -212,9 +218,12 @@ export const postService = {
     if (post.status !== 'published') return { success: false, error: { code: ErrorCodes.BOOKMARK_POST_NOT_FOUND, message: '帖子不存在' } }
     const existing = await prisma.bookmark.findUnique({ where: { userId_postId: { userId, postId } } })
     if (existing) return { success: false, error: { code: ErrorCodes.ALREADY_BOOKMARKED, message: '已收藏' } }
-    await prisma.bookmark.create({ data: { userId, postId } })
+    await prisma.$transaction([
+      prisma.bookmark.create({ data: { userId, postId } }),
+      prisma.post.update({ where: { id: postId }, data: { bookmarkCount: { increment: 1 } } }),
+    ])
     if (post.userId !== userId) {
-      await notificationService.create({ userId: post.userId, type: 'bookmark', actorId: userId, targetType: 'post', targetId: postId, content: '收藏了你的帖子' }).catch(() => {})
+      await notificationService.create({ userId: post.userId, type: 'bookmark', actorId: userId, targetType: 'post', targetId: postId, content: '收藏了你的帖子' }).catch(() => { console.error('[notification] bookmark notification failed:', postId) })
     }
     return { success: true, data: null }
   },
@@ -222,7 +231,10 @@ export const postService = {
   async unbookmark(postId: string, userId: string): Promise<ServiceResult<null>> {
     const existing = await prisma.bookmark.findUnique({ where: { userId_postId: { userId, postId } } })
     if (!existing) return { success: false, error: { code: ErrorCodes.NOT_BOOKMARKED, message: '未收藏' } }
-    await prisma.bookmark.delete({ where: { id: existing.id } })
+    await prisma.$transaction([
+      prisma.bookmark.delete({ where: { id: existing.id } }),
+      prisma.post.update({ where: { id: postId }, data: { bookmarkCount: { decrement: 1 } } }),
+    ])
     return { success: true, data: null }
   },
 

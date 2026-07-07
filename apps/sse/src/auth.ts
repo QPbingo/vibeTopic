@@ -19,7 +19,7 @@ const consumedTickets = new Map<string, number>()
 export function verifyTicket(ticket: string): string | null {
   try {
     const payload = jwt.verify(ticket, config.ticketSecret, {
-      issuer: 'bingbingbingo',
+      issuer: config.ticketIssuer,
     }) as TicketPayload
 
     if (payload.type !== 'sse_ticket' || !payload.jti || consumedTickets.has(payload.jti)) {

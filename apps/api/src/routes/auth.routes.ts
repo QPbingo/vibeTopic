@@ -7,6 +7,7 @@ import { loginLimiter, registerLimiter } from '../middleware/ratelimit.js'
 import { success, error } from '../lib/response.js'
 import { ErrorCodes } from '@bingo/shared'
 import { config } from '../config.js'
+import { refreshLimiter } from '../middleware/ratelimit.js'
 
 export const authRouter = Router()
 
@@ -54,7 +55,7 @@ authRouter.post('/login', loginLimiter, validate('body', loginSchema), async (re
   return success(res, { user: result.data.user, accessToken: result.data.accessToken, expiresIn: result.data.expiresIn })
 })
 
-authRouter.post('/refresh', async (req, res) => {
+authRouter.post('/refresh', refreshLimiter, async (req, res) => {
   const refreshToken = req.cookies?.refresh_token
   if (!refreshToken) return error(res, ErrorCodes.INVALID_REFRESH_TOKEN, 401)
   const result = await authService.refresh(refreshToken)
@@ -73,7 +74,7 @@ authRouter.post('/logout', requireAuth, async (req, res) => {
 })
 
 authRouter.post('/forgot-password', validate('body', forgotPasswordSchema), async (req, res) => {
-  if (config.email.enabled) {
+  if (!config.email.enabled) {
     return error(res, ErrorCodes.INTERNAL_ERROR, 503, '邮件发送服务尚未配置')
   }
   const result = await authService.requestPasswordReset(req.body.email)

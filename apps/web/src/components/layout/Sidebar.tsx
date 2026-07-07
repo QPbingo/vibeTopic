@@ -29,24 +29,22 @@ export function Sidebar() {
 
   useEffect(() => {
     async function fetchData() {
-      try {
-        const [hotRes, tagsRes, authorsRes] = await Promise.all([
-          api.get<PaginatedResponse<PostCard>>('/posts?sort=hot&limit=5'),
-          api.get<Tag[]>('/tags'),
-          api.get<RecommendedAuthor[]>('/users?limit=5'),
-        ])
-        if (hotRes.data) {
-          setHotPosts(hotRes.data.items.slice(0, 5).map(p => ({
-            id: p.id, title: p.title, slug: p.slug,
-            likeCount: p.likeCount, commentCount: p.commentCount,
-          })))
-        }
-        if (tagsRes.data) {
-          setTags(tagsRes.data.slice(0, 15))
-        }
-        if (authorsRes.data) setAuthors(authorsRes.data)
-      } catch {
-        // Sidebar fails silently
+      const [hotRes, tagsRes, authorsRes] = await Promise.allSettled([
+        api.get<PaginatedResponse<PostCard>>('/posts?sort=hot&limit=5'),
+        api.get<Tag[]>('/tags'),
+        api.get<RecommendedAuthor[]>('/users?limit=5'),
+      ])
+      if (hotRes.status === 'fulfilled' && hotRes.value.data) {
+        setHotPosts(hotRes.value.data.items.slice(0, 5).map(p => ({
+          id: p.id, title: p.title, slug: p.slug,
+          likeCount: p.likeCount, commentCount: p.commentCount,
+        })))
+      }
+      if (tagsRes.status === 'fulfilled' && tagsRes.value.data) {
+        setTags(tagsRes.value.data.slice(0, 15))
+      }
+      if (authorsRes.status === 'fulfilled' && authorsRes.value.data) {
+        setAuthors(authorsRes.value.data)
       }
     }
     fetchData()

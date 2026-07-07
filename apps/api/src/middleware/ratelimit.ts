@@ -32,3 +32,19 @@ export const createPostLimiter = rateLimit({
   legacyHeaders: false,
   message: { code: 10003, data: null, message: '发帖过于频繁，请稍后再试' },
 })
+
+export const refreshLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { code: 10003, data: null, message: '刷新过于频繁，请稍后再试' },
+})
+
+export const socialLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { code: 10003, data: null, message: '操作过于频繁，请稍后再试' },
+})

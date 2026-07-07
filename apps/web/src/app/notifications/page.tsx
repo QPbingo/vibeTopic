@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import type { Notification, PaginatedResponse } from '@bingo/shared'
+import { getTimeAgo } from '@/lib/utils'
 
 export default function NotificationsPage() {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth()
@@ -12,6 +13,8 @@ export default function NotificationsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [cursor, setCursor] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(false)
+  const [loadError, setLoadError] = useState('')
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
 
   const fetchNotifications = useCallback(async (nextCursor?: string) => {
     const params = new URLSearchParams({ limit: '30' })
@@ -27,21 +30,33 @@ export default function NotificationsPage() {
         setNotifications(data.items)
         setCursor(data.cursor)
         setHasMore(data.hasMore)
+      } else {
+        setLoadError('加载通知失败')
       }
+      setIsLoading(false)
+    }).catch(() => {
+      setLoadError('加载通知失败')
       setIsLoading(false)
     })
 
     // Mark as read
-    api.post('/users/me/notifications/read').catch(() => {})
+    api.post('/users/me/notifications/read').catch(() => { /* mark-read is non-critical */ })
   }, [isAuthenticated, fetchNotifications])
 
   const loadMore = async () => {
-    if (!cursor) return
-    const data = await fetchNotifications(cursor)
-    if (data) {
-      setNotifications(prev => [...prev, ...data.items])
-      setCursor(data.cursor)
-      setHasMore(data.hasMore)
+    if (!cursor || isLoadingMore) return
+    setIsLoadingMore(true)
+    try {
+      const data = await fetchNotifications(cursor)
+      if (data) {
+        setNotifications(prev => [...prev, ...data.items])
+        setCursor(data.cursor)
+        setHasMore(data.hasMore)
+      }
+    } catch {
+      // ignore
+    } finally {
+      setIsLoadingMore(false)
     }
   }
 
@@ -78,11 +93,16 @@ export default function NotificationsPage() {
         ▸ 消息中心
       </h1>
 
-      {notifications.length === 0 ? (
+      {loadError && (
+        <div style={{ padding: 20, textAlign: 'center', color: 'var(--pink)', fontSize: 13, marginBottom: 16 }}>
+          {loadError}
+        </div>
+      )}
+      {notifications.length === 0 && !loadError ? (
         <div className="pixel-card" style={{ textAlign: 'center', padding: 40, color: 'var(--muted-text)', fontSize: 13 }}>
           暂无消息
         </div>
-      ) : (
+      ) : notifications.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {notifications.map(n => (
             <div
@@ -128,24 +148,16 @@ export default function NotificationsPage() {
           {hasMore && (
             <button
               onClick={loadMore}
+              disabled={isLoadingMore}
               className="pixel-btn pixel-btn-subtle"
               style={{ alignSelf: 'center', marginTop: 16 }}
             >
-              加载更多
+              {isLoadingMore ? '加载中...' : '加载更多'}
             </button>
           )}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }
 
-function getTimeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return '刚刚'
-  if (mins < 60) return `${mins}分钟前`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}小时前`
-  return `${Math.floor(hours / 24)}天前`
-}

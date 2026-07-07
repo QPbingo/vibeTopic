@@ -4,6 +4,7 @@ import type { CreateCommentInput } from '@bingo/shared'
 import type { ServiceResult } from '../lib/result.js'
 import { renderMarkdown } from '../lib/content.js'
 import { notificationService } from './notification.service.js'
+import { config } from '../config.js'
 
 export const commentService = {
   async list(postId: string, userId?: string): Promise<ServiceResult<unknown[]>> {
@@ -68,16 +69,19 @@ export const commentService = {
       parentUserId = parent.userId
     }
 
+    const status = config.contentSafety.enabled ? 'pending_review' : 'published'
     const comment = await prisma.comment.create({
-      data: { postId, userId, parentId: input.parentId || null, rootId, contentMd: input.contentMd, contentHtml: renderMarkdown(input.contentMd), depth },
+      data: { postId, userId, parentId: input.parentId || null, rootId, contentMd: input.contentMd, contentHtml: renderMarkdown(input.contentMd), depth, status },
       include: { author: { select: { id: true, username: true, avatarUrl: true } } },
     })
 
+    await prisma.post.update({ where: { id: postId }, data: { commentCount: { increment: 1 } } })
+
     if (parentUserId && parentUserId !== userId) {
-      await notificationService.create({ userId: parentUserId, type: 'reply', actorId: userId, targetType: 'comment', targetId: comment.id, content: '回复了你的评论' }).catch(() => {})
+      await notificationService.create({ userId: parentUserId, type: 'reply', actorId: userId, targetType: 'comment', targetId: comment.id, content: '回复了你的评论' }).catch(() => { console.error('[notification] reply notification failed') })
     }
     if (!parentUserId && post.userId !== userId) {
-      await notificationService.create({ userId: post.userId, type: 'comment', actorId: userId, targetType: 'post', targetId: postId, content: '评论了你的帖子' }).catch(() => {})
+      await notificationService.create({ userId: post.userId, type: 'comment', actorId: userId, targetType: 'post', targetId: postId, content: '评论了你的帖子' }).catch(() => { console.error('[notification] comment notification failed') })
     }
 
     return { success: true, data: { id: comment.id, parentId: comment.parentId, rootId: comment.rootId, depth: comment.depth, contentMd: comment.contentMd, contentHtml: comment.contentHtml, createdAt: comment.createdAt.toISOString(), author: comment.author } }
@@ -87,7 +91,10 @@ export const commentService = {
     const comment = await prisma.comment.findUnique({ where: { id: commentId } })
     if (!comment) return { success: false, error: { code: ErrorCodes.COMMENT_NOT_FOUND, message: '评论不存在' } }
     if (comment.userId !== userId && userRole !== 'admin') return { success: false, error: { code: ErrorCodes.COMMENT_DELETE_FORBIDDEN, message: '无权限删除该评论' } }
-    await prisma.comment.update({ where: { id: commentId }, data: { status: 'deleted' } })
+    await prisma.$transaction([
+      prisma.comment.update({ where: { id: commentId }, data: { status: 'deleted' } }),
+      prisma.post.update({ where: { id: comment.postId }, data: { commentCount: { decrement: 1 } } }),
+    ])
     return { success: true, data: null }
   },
 
@@ -96,9 +103,12 @@ export const commentService = {
     if (!comment || comment.status === 'deleted') return { success: false, error: { code: ErrorCodes.COMMENT_NOT_FOUND, message: '评论不存在' } }
     const existing = await prisma.like.findUnique({ where: { userId_targetType_targetId: { userId, targetType: 'comment', targetId: commentId } } })
     if (existing) return { success: false, error: { code: ErrorCodes.ALREADY_LIKED, message: '已点赞' } }
-    await prisma.like.create({ data: { userId, targetType: 'comment', targetId: commentId } })
+    await prisma.$transaction([
+      prisma.like.create({ data: { userId, targetType: 'comment', targetId: commentId } }),
+      prisma.comment.update({ where: { id: commentId }, data: { likeCount: { increment: 1 } } }),
+    ])
     if (comment.userId !== userId) {
-      await notificationService.create({ userId: comment.userId, type: 'like', actorId: userId, targetType: 'comment', targetId: commentId, content: '点赞了你的评论' }).catch(() => {})
+      await notificationService.create({ userId: comment.userId, type: 'like', actorId: userId, targetType: 'comment', targetId: commentId, content: '点赞了你的评论' }).catch(() => { console.error('[notification] comment like notification failed') })
     }
     return { success: true, data: null }
   },
@@ -106,7 +116,10 @@ export const commentService = {
   async unlike(commentId: string, userId: string): Promise<ServiceResult<null>> {
     const existing = await prisma.like.findUnique({ where: { userId_targetType_targetId: { userId, targetType: 'comment', targetId: commentId } } })
     if (!existing) return { success: false, error: { code: ErrorCodes.NOT_LIKED, message: '未点赞' } }
-    await prisma.like.delete({ where: { id: existing.id } })
+    await prisma.$transaction([
+      prisma.like.delete({ where: { id: existing.id } }),
+      prisma.comment.update({ where: { id: commentId }, data: { likeCount: { decrement: 1 } } }),
+    ])
     return { success: true, data: null }
   },
 }

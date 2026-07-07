@@ -36,6 +36,11 @@ function SearchContent() {
         </div>
 
         <div className="post-feed">
+          {error && (
+            <div style={{ padding: 20, textAlign: 'center', color: 'var(--pink)', fontSize: 13, marginBottom: 16 }}>
+              搜索失败，请稍后重试
+            </div>
+          )}
           {items.map(post => (
             <PostCard key={post.id} post={post} />
           ))}

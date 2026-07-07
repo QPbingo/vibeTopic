@@ -71,6 +71,10 @@ export function ResetPasswordForm({ token }: { token: string }) {
     event.preventDefault()
     setError('')
     if (!token) { setError('重置链接缺少 token'); return }
+    if (password.length < 8) {
+      setError('密码长度至少 8 个字符')
+      return
+    }
     if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
       setError('密码必须包含字母和数字')
       return
@@ -78,7 +82,13 @@ export function ResetPasswordForm({ token }: { token: string }) {
     setIsLoading(true)
     try {
       await api.post('/auth/reset-password', { token, password })
-      router.push('/login')
+      setError('')
+      const successMsg = document.createElement('div')
+      successMsg.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--cyan);color:#000;padding:12px 24px;font-family:Zpix,monospace;font-size:13px;z-index:9999'
+      successMsg.textContent = '密码已重置，请登录'
+      document.body.appendChild(successMsg)
+      setTimeout(() => { successMsg.remove(); router.push('/login') }, 1500)
+      return
     } catch (err) {
       setError(err instanceof Error ? err.message : '重置失败')
     } finally {

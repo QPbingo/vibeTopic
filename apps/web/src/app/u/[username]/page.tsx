@@ -35,8 +35,11 @@ export default function UserProfilePage() {
     load()
   }, [username])
 
+  const [followError, setFollowError] = useState('')
+  
   const handleFollow = async () => {
     if (!profile || !isAuthenticated) return
+    setFollowError('')
     try {
       if (isFollowing) {
         await api.delete(`/follows/${profile.id}`)
@@ -47,7 +50,9 @@ export default function UserProfilePage() {
         setIsFollowing(true)
         setProfile(prev => prev ? { ...prev, followerCount: prev.followerCount + 1 } : prev)
       }
-    } catch { /* ignore */ }
+    } catch {
+      setFollowError('操作失败，请重试')
+    }
   }
 
   if (isLoading) {
@@ -94,6 +99,9 @@ export default function UserProfilePage() {
           <span>作品 {profile.projectCount}</span>
         </div>
 
+        {followError && (
+          <div style={{ color: 'var(--pink)', fontSize: 12, marginTop: 8 }}>{followError}</div>
+        )}
         {!isSelf && isAuthenticated && (
           <div style={{ marginTop: 16 }}>
             <PixelButton

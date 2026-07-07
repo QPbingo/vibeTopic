@@ -9,6 +9,7 @@ import { StatIcons } from '@/components/ui/StatIcons'
 import { PostMedia } from './PostMedia'
 import type { PostCard as PostCardType } from '@bingo/shared'
 import { useState } from 'react'
+import { getTimeAgo } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 
 interface PostCardProps {
@@ -73,16 +74,18 @@ export function PostCard({ post }: PostCardProps) {
       </div>
 
       <div className="post-card-row">
-        <div className="post-card-avatar">
-          <PixelAvatar username={post.author.username} avatarUrl={post.author.avatarUrl} />
-        </div>
-        <div className="post-card-body">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <Link href={`/u/${post.author.username}`} className="post-card-user" style={{ textDecoration: 'none' }}>
-              {post.author.username}
-            </Link>
-            <span className="post-card-time">{timeAgo}</span>
-          </div>
+        {post.author && (
+          <>
+            <div className="post-card-avatar">
+              <PixelAvatar username={post.author.username} avatarUrl={post.author.avatarUrl} />
+            </div>
+            <div className="post-card-body">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <Link href={`/u/${post.author.username}`} className="post-card-user" style={{ textDecoration: 'none' }}>
+                  {post.author.username}
+                </Link>
+                <span className="post-card-time">{timeAgo}</span>
+              </div>
 
           <Link href={`/posts/${post.slug}`} className="post-card-title">
             {post.title}
@@ -92,7 +95,7 @@ export function PostCard({ post }: PostCardProps) {
 
           {/* Media */}
           {post.media && post.media.length > 0 && (
-            <PostMedia media={post.media} />
+            <PostMedia media={post.media} postSlug={post.slug} />
           )}
 
           {/* Tags */}
@@ -114,23 +117,22 @@ export function PostCard({ post }: PostCardProps) {
             onBookmark={handleBookmark}
           />
         </div>
+          </>
+        )}
+        {!post.author && (
+          <div className="post-card-body">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: 12, color: 'var(--muted-text)' }}>[账号已注销]</span>
+              <span className="post-card-time">{timeAgo}</span>
+            </div>
+            <Link href={`/posts/${post.slug}`} className="post-card-title">
+              {post.title}
+            </Link>
+            <p className="post-card-excerpt">{post.excerpt}</p>
+          </div>
+        )}
       </div>
     </article>
   )
 }
 
-function getTimeAgo(dateStr: string): string {
-  const now = Date.now()
-  const then = new Date(dateStr).getTime()
-  const diff = now - then
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return '刚刚'
-  if (mins < 60) return `${mins}分钟前`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}小时前`
-  const days = Math.floor(hours / 24)
-  if (days < 30) return `${days}天前`
-  const months = Math.floor(days / 30)
-  if (months < 12) return `${months}个月前`
-  return `${Math.floor(months / 12)}年前`
-}

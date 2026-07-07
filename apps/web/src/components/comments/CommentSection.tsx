@@ -19,13 +19,15 @@ export function CommentSection({ postId }: CommentSectionProps) {
   const [replyToId, setReplyToId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [fetchError, setFetchError] = useState(false)
 
   const fetchComments = useCallback(async () => {
     try {
       const res = await api.get<Comment[]>(`/posts/${postId}/comments`)
       if (res.data) setComments(res.data)
+      setFetchError(false)
     } catch {
-      // ignore
+      setFetchError(true)
     } finally {
       setIsLoading(false)
     }
@@ -44,7 +46,6 @@ export function CommentSection({ postId }: CommentSectionProps) {
     try {
       await api.post(`/posts/${postId}/comments`, {
         contentMd: content,
-        contentHtml: content,
         parentId: replyToId || undefined,
       })
       setContent('')
@@ -114,7 +115,7 @@ export function CommentSection({ postId }: CommentSectionProps) {
       <div className="comment-thread">
         {comments.length === 0 ? (
           <div style={{ padding: 32, textAlign: 'center', color: 'var(--muted-text)', fontSize: 13 }}>
-            暂无评论，来说点什么吧
+            {fetchError ? '评论加载失败，请刷新重试' : '暂无评论，来说点什么吧'}
           </div>
         ) : (
           comments.map(comment => (
