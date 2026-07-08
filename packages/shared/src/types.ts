@@ -51,7 +51,7 @@ export interface UserProfile extends User {
 export interface UserUpdateInput {
   username?: string
   bio?: string
-  avatarUrl?: string
+  avatarUrl?: string | null
 }
 
 // ---- Auth ----
@@ -100,6 +100,7 @@ export interface Post {
   tags?: Tag[]
   isLiked?: boolean
   isBookmarked?: boolean
+  media?: PostMedia[]
 }
 
 export interface PostCard {
@@ -128,6 +129,8 @@ export interface PostCard {
 export interface PostMedia {
   type: 'image' | 'video'
   url: string
+  alt?: string
+  title?: string
   placeholderType?: string // media-ph-1 ~ media-ph-6
   duration?: string // video duration like "24:18"
   isLive?: boolean
@@ -146,6 +149,7 @@ export interface UpdatePostInput {
   contentMd?: string
   contentHtml?: string
   tags?: string[]
+  media?: PostMedia[]
 }
 
 export type FeedSort = 'latest' | 'hot' | 'featured'

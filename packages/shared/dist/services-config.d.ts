@@ -155,6 +155,8 @@ export declare const AppBaseConfig: {
     readonly apiBaseUrl: string;
     /** API 服务端口 */
     readonly apiPort: number;
+    /** 上传文件公开基础 URL */
+    readonly uploadPublicBaseUrl: string;
     /** 运行环境 */
     readonly nodeEnv: "development" | "production" | "test";
     /** 是否为生产环境 */
@@ -318,6 +320,8 @@ export declare const ServiceConfig: {
         readonly apiBaseUrl: string;
         /** API 服务端口 */
         readonly apiPort: number;
+        /** 上传文件公开基础 URL */
+        readonly uploadPublicBaseUrl: string;
         /** 运行环境 */
         readonly nodeEnv: "development" | "production" | "test";
         /** 是否为生产环境 */

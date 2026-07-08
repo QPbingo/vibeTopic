@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { prisma } from '../lib/prisma.js'
 import { optionalAuth } from '../middleware/auth.js'
-import { success, error, paginated } from '../lib/response.js'
+import { success, error } from '../lib/response.js'
 import { postService } from '../services/post.service.js'
 import { z } from 'zod'
 import { validate } from '../middleware/validate.js'

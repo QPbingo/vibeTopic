@@ -2,6 +2,7 @@ import 'express-async-errors'
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
+import path from 'path'
 import { config } from './config.js'
 import { globalLimiter } from './middleware/ratelimit.js'
 import { authRouter } from './routes/auth.routes.js'
@@ -21,12 +22,22 @@ if (config.isProduction) app.set('trust proxy', 1)
 
 // ---- Global Middleware ----
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://bingbingbingo.cn'],
+  origin: (process.env.CORS_ORIGINS || 'http://localhost:3000,https://bingbingbingo.cn').split(','),
   credentials: true,
 }))
-app.use(express.json({ limit: '1mb' }))
+app.use(express.json({ limit: '15mb' }))
 app.use(cookieParser())
 app.use(globalLimiter)
+
+// ---- Static Files ----
+const uploadDir = path.resolve(process.cwd(), 'uploads')
+app.use('/uploads', express.static(uploadDir, {
+  dotfiles: 'ignore',
+  index: false,
+  setHeaders(res) {
+    res.setHeader('Cache-Control', 'no-cache')
+  },
+}))
 
 // ---- Health Check ----
 app.get('/health', (_req, res) => {
@@ -82,8 +93,12 @@ app.use((_req, res) => {
 
 // ---- Error Handler ----
 app.use((err: Error & { type?: string; status?: number }, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  void _next
   if (err.type === 'entity.parse.failed') {
     return res.status(400).json({ code: 10006, data: null, message: '请求体格式错误' })
+  }
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ code: 10013, data: null, message: '请求体过大' })
   }
   console.error('[API Error]', err)
   res.status(500).json({

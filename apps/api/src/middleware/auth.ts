@@ -4,6 +4,7 @@ import { error } from '../lib/response.js'
 import { ErrorCodes } from '@bingo/shared'
 
 // Extend Express Request to include user
+/* eslint-disable @typescript-eslint/no-namespace */
 declare global {
   namespace Express {
     interface Request {
@@ -11,6 +12,7 @@ declare global {
     }
   }
 }
+/* eslint-enable @typescript-eslint/no-namespace */
 
 /**
  * Required auth — rejects if no valid access token.

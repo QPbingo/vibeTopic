@@ -13,9 +13,13 @@ export function useSSE({ enabled = false, onNotification }: UseSSEOptions = {}) 
   const eventSourceRef = useRef<EventSource | null>(null)
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const generationRef = useRef(0)
+  const onNotificationRef = useRef(onNotification)
+  const getAccessTokenRef = useRef(getAccessToken)
+  onNotificationRef.current = onNotification
+  getAccessTokenRef.current = getAccessToken
 
   useEffect(() => {
-    if (!enabled || !getAccessToken()) return
+    if (!enabled || !getAccessTokenRef.current()) return
 
     const generation = ++generationRef.current
     let cancelled = false
@@ -39,7 +43,7 @@ export function useSSE({ enabled = false, onNotification }: UseSSEOptions = {}) 
         es.addEventListener('notification', (e) => {
           try {
             const data = JSON.parse(e.data)
-            onNotification?.(data)
+            onNotificationRef.current?.(data)
           } catch {
             // ignore parse errors
           }
@@ -67,11 +71,15 @@ export function useSSE({ enabled = false, onNotification }: UseSSEOptions = {}) 
 
     return () => {
       cancelled = true
+      // Capture current generation to avoid stale cleanup racing with a new effect
+      const cleanupGeneration = generationRef.current
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional ref mutation for generation tracking
       generationRef.current++
+      if (generation !== cleanupGeneration) return
       eventSourceRef.current?.close()
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current)
     }
-  }, [enabled, onNotification])
+  }, [enabled])
 
   return { isConnected }
 }

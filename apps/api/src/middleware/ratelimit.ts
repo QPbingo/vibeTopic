@@ -48,3 +48,11 @@ export const socialLimiter = rateLimit({
   legacyHeaders: false,
   message: { code: 10003, data: null, message: '操作过于频繁，请稍后再试' },
 })
+
+export const uploadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { code: 10003, data: null, message: '上传过于频繁，请稍后再试' },
+})

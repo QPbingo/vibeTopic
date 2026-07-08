@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import { config } from '../config.js'
-import { SSEConfig, AppBaseConfig } from '@bingo/shared'
+import { SSEConfig } from '@bingo/shared'
 
 export interface AccessTokenPayload {
   sub: string // user id

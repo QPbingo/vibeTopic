@@ -68,6 +68,9 @@ export declare const ErrorCodes: {
     readonly UPLOAD_CREDENTIAL_FAILED: 20003;
     readonly OSS_UPLOAD_FAILED: 20004;
     readonly FILE_NOT_FOUND: 20005;
+    readonly UPLOAD_UNSUPPORTED_TYPE: 20006;
+    readonly UPLOAD_INVALID_DATA: 20007;
+    readonly UPLOAD_SIZE_MISMATCH: 20008;
     readonly NO_UNREAD_NOTIFICATIONS: 21001;
     readonly SEARCH_KEYWORD_EMPTY: 22001;
     readonly SEARCH_KEYWORD_TOO_SHORT: 22002;

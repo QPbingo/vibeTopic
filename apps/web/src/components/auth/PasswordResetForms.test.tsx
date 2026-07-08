@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from 'react'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, act } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ForgotPasswordForm, ResetPasswordForm } from './PasswordResetForms'
 
@@ -18,7 +18,10 @@ vi.mock('../../lib/api', () => ({
 }))
 
 describe('password reset forms', () => {
-  afterEach(() => cleanup())
+  afterEach(() => {
+    cleanup()
+    vi.useRealTimers()
+  })
 
   beforeEach(() => {
     mocks.push.mockReset()
@@ -40,6 +43,7 @@ describe('password reset forms', () => {
   })
 
   it('resets the password and returns to login', async () => {
+    vi.useFakeTimers()
     mocks.apiPost.mockResolvedValue({ data: null })
 
     render(<ResetPasswordForm token="dev-token" />)
@@ -47,9 +51,19 @@ describe('password reset forms', () => {
     fireEvent.change(screen.getByLabelText('新密码'), { target: { value: 'newPass123' } })
     fireEvent.click(screen.getByRole('button', { name: '重置密码' }))
 
-    await waitFor(() => {
-      expect(mocks.apiPost).toHaveBeenCalledWith('/auth/reset-password', { token: 'dev-token', password: 'newPass123' })
+    // Advance timers to flush the async API call and state updates
+    await act(() => {
+      vi.advanceTimersByTime(100)
     })
+
+    expect(mocks.apiPost).toHaveBeenCalledWith('/auth/reset-password', { token: 'dev-token', password: 'newPass123' })
+
+    // Advance 1500ms for the redirect setTimeout
+    await act(() => {
+      vi.advanceTimersByTime(1500)
+    })
+
     expect(mocks.push).toHaveBeenCalledWith('/login')
+    vi.useRealTimers()
   })
 })

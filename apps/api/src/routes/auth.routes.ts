@@ -74,7 +74,7 @@ authRouter.post('/logout', requireAuth, async (req, res) => {
 })
 
 authRouter.post('/forgot-password', validate('body', forgotPasswordSchema), async (req, res) => {
-  if (!config.email.enabled) {
+  if (!config.email.enabled && config.isProduction) {
     return error(res, ErrorCodes.INTERNAL_ERROR, 503, '邮件发送服务尚未配置')
   }
   const result = await authService.requestPasswordReset(req.body.email)

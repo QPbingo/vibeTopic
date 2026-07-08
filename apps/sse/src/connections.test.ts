@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { ConnectionPool } from './connections'
 
 function response() {
-  return { write: vi.fn() } as unknown as Response
+  return { write: vi.fn(), writable: true, destroyed: false } as unknown as Response
 }
 
 describe('ConnectionPool', () => {

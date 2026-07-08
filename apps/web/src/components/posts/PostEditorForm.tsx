@@ -1,13 +1,14 @@
 'use client'
 
 import React from 'react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Editor } from '@bytemd/react'
 import gfm from '@bytemd/plugin-gfm'
 import highlight from '@bytemd/plugin-highlight'
 import { api } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
+import { uploadImage, preflightCheck } from '../../lib/upload'
 
 type PostEditorFormProps = {
   mode: 'create' | 'edit'
@@ -48,6 +49,42 @@ export function PostEditorForm({ mode, initialPost }: PostEditorFormProps) {
   const [tagsText, setTagsText] = useState(initialPost?.tags?.map(tag => tag.name).join(', ') ?? '')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null)
+
+  const uploadImages = useCallback(async (files: File[]) => {
+    setIsUploading(true)
+    setUploadStatus(null)
+    setError(null)
+    const results: { url: string; alt?: string; title?: string }[] = []
+    let failed = 0
+    const total = files.length
+
+    for (const file of files) {
+      const checkErr = preflightCheck(file)
+      if (checkErr) {
+        failed++
+        continue
+      }
+      try {
+        const result = await uploadImage(file)
+        results.push(result)
+      } catch {
+        failed++
+      }
+    }
+
+    if (failed > 0 && results.length > 0) {
+      setUploadStatus(`${results.length}/${total} 张上传成功，${failed} 张失败`)
+    } else if (failed === total && total > 0) {
+      setError('所有图片上传失败，请检查文件类型和大小')
+    } else if (results.length > 0) {
+      setUploadStatus(`${results.length}/${total} 张上传成功`)
+    }
+
+    setIsUploading(false)
+    return results
+  }, [])
 
   const loginNext = mode === 'create' ? '/posts/new' : `/posts/${initialPost?.id ?? ''}/edit`
   const actionLabel = mode === 'create' ? '发布帖子' : '保存修改'
@@ -113,12 +150,13 @@ export function PostEditorForm({ mode, initialPost }: PostEditorFormProps) {
             <div className="editor-kicker">WRITE / SHARE / VIBE</div>
             <h1>{titleText}</h1>
           </div>
-          <button className="pixel-btn pixel-btn-accent" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? '提交中...' : actionLabel}
+          <button className="pixel-btn pixel-btn-accent" type="submit" disabled={isSubmitting || isUploading}>
+            {isSubmitting ? '提交中...' : isUploading ? '图片上传中...' : actionLabel}
           </button>
         </div>
 
         {error && <div className="form-error" role="alert">{error}</div>}
+        {uploadStatus && <div className="upload-status" style={{ fontFamily: 'Zpix, monospace', fontSize: 12, color: 'var(--cyan)', marginBottom: 8 }}>{uploadStatus}</div>}
 
         <label className="field-label" htmlFor="post-title">标题</label>
         <input
@@ -150,6 +188,7 @@ export function PostEditorForm({ mode, initialPost }: PostEditorFormProps) {
             value={contentMd}
             plugins={plugins}
             onChange={setContentMd}
+            uploadImages={uploadImages}
             placeholder="写下你的项目、踩坑、提示词、代码片段，或者一次冒险。"
           />
         </div>

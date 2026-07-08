@@ -207,6 +207,8 @@ export const AppBaseConfig = {
     apiBaseUrl: env('NEXT_PUBLIC_API_BASE_URL', env('API_BASE_URL', 'http://localhost:8080/api/v1')),
     /** API 服务端口 */
     apiPort: envInt('PORT', 8080),
+    /** 上传文件公开基础 URL */
+    uploadPublicBaseUrl: env('UPLOAD_PUBLIC_BASE_URL', 'http://localhost:8080'),
     /** 运行环境 */
     nodeEnv: env('NODE_ENV', 'development'),
     /** 是否为生产环境 */

@@ -1,62 +1,47 @@
-# AGENTS.md
+# Repository Guidelines
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+## Project Structure & Module Organization
 
-## Project Overview
+This is a pnpm monorepo for **bingbingbingo**, a Next.js + API + SSE community app.
 
-**bingbingbingo** — a vertical tech community for vibe coding / AI-assisted developers in China. Developers share projects, discuss AI tools (Cursor, Codex, Copilot), and showcase work. Target domain: `https://bingbingbingo.cn`.
+- `apps/web/`: Next.js 15 frontend. App routes live in `src/app`, shared UI in `src/components`, hooks in `src/hooks`, and client helpers in `src/lib`.
+- `apps/api/`: TypeScript API service. Routes are in `src/routes`, business logic in `src/services`, middleware in `src/middleware`, and response/util helpers in `src/lib`.
+- `apps/sse/`: Standalone SSE notification service.
+- `packages/shared/`: Shared config, error codes, and types.
+- `prisma/`: Prisma schema and seed data.
+- `docs/`: PRD, UI spec, database, config, and error-code documentation.
 
-**Current phase**: Design & prototyping. Code implementation has not started. The primary artifact is `preview.html` — a self-contained, dual-theme (dark/light) interactive preview of the homepage feed.
+Tests sit beside source files as `*.test.ts` or `*.test.tsx`.
 
-**Planned tech stack**: Next.js 15 + Tailwind CSS 4 + shadcn/ui + bytemd (Markdown editor). Backend: PostgreSQL + JWT auth + SSE notifications. Monorepo structure expected (apps/web, apps/api, apps/sse, packages/shared).
+## Build, Test, and Development Commands
 
-## Design Decisions
+- `pnpm dev`: builds shared package, then starts all app dev servers.
+- `pnpm dev:web`, `pnpm dev:api`, `pnpm dev:sse`: run one service locally.
+- `pnpm build`: builds every workspace package.
+- `pnpm lint`: runs ESLint across workspaces.
+- `pnpm typecheck`: runs TypeScript checks across workspaces.
+- `pnpm test`: runs Vitest tests.
+- `pnpm db:generate`: generates Prisma client.
+- `pnpm db:setup`: pushes schema, loads setup SQL, and seeds data.
 
-### Visual identity: Laser Mosaic Arcade
-The UI has a distinctive **classic arcade pixel aesthetic** inspired by Codex's logo blocks, Hermès pixel scarves, and Vibe Island. Key design rules:
+Use Node `>=22` and pnpm `>=9`.
 
-- **Dual font system**: UI chrome (nav, tabs, buttons, tags, stats, time) uses Zpix pixel font. Content (post titles, body, usernames) uses Inter. Sidebar uses Inter only — no pixel fonts, no animations.
-- **Staircase box-shadows**: Cards, buttons, and media use multi-layer `box-shadow` offsets (4/8/12/16/20px) in cyan/pink/purple — never rounded corners, never smooth transitions.
-- **CRT effects**: Full-page scanline overlay with `crtFlicker` animation, screen-edge vignette via inset `box-shadow` on body.
-- **Floating particles**: 10 large pixel blocks (8–16px) drift upward with rotation — pure CSS, no JS.
-- **Rainbow strip**: An 8-color animated pixel bar between nav and content.
-- **Animations use `steps()` only** — no easing curves, everything is hard-stepped for arcade feel. But sidebar and post content remain static.
+## Coding Style & Naming Conventions
 
-### Post media system
-Posts support 1–3 images displayed simultaneously (not a carousel):
-- Single image: 130–140px height, full width
-- 2-image grid: `grid-template-columns: 1fr 1fr`, 110px rows
-- 3-image grid: `grid-template-columns: 1fr 1fr 1fr`, 110px rows
-- Video: thumbnail with octagonal play button (matching avatar clip-path), duration badge
+Use TypeScript throughout. Follow existing React Server/Client Component boundaries and add `'use client'` only when hooks, browser APIs, or client state are required. Components use `PascalCase`, hooks use `useCamelCase`, utilities use `camelCase`, and route folders follow Next.js conventions such as `posts/[slug]`.
 
-All placeholder images are pure CSS gradients (`.media-ph-1` through `.media-ph-6`) — no external dependencies.
+The frontend uses Tailwind CSS 4 plus project CSS tokens in `apps/web/src/app/globals.css`. Preserve the pixel-arcade style: square corners, Zpix for UI chrome, Inter for content, and explicit dark/light theme support.
 
-### Sidebar rules
-- 3 modules only: 热榜 (Hot), 推荐作者 (Authors), 热门标签 (Tags)
-- All text in Inter font
-- No animations whatsoever
-- Stats bar ("在线/帖子/冒险者") and About module were intentionally removed
+## Testing Guidelines
 
-### Theme system
-Dark mode is default. Toggle via ☀ button (36×36px, pixel-styled) that adds `.light` class to `<html>`. Both themes must be equally polished — every element has `.light` overrides.
+Vitest is the test runner. Add focused tests next to changed logic using `*.test.ts` or `*.test.tsx`. Prefer small behavioral tests for services, route helpers, hooks, and form components. Run `pnpm test` before submitting, plus `pnpm typecheck` for TypeScript changes.
 
-## Documentation
+## Commit & Pull Request Guidelines
 
-| File | Purpose |
-|------|---------|
-| `preview.html` | Self-contained interactive homepage preview. Open directly in browser. |
-| `docs/PRD.md` | Product requirements — MVP feature scope, user flows |
-| `docs/ui-spec.md` | Complete UI design spec v1.4.0 — colors, fonts, pixel system, animations, media, components, checklist |
-| `docs/database.md` | PostgreSQL schema — tables, fields, relations |
-| `docs/config.md` | Configuration files and environment variables |
-| `docs/error-codes.md` | Error code catalog for API responses |
+Recent history uses short Chinese summaries and occasional Conventional prefixes, for example `chore: update .gitignore`. Keep commits concise and action-oriented.
 
-## Working with preview.html
+PRs should include a short description, linked issue when available, test results, and screenshots for UI changes. Call out database, environment, or API contract changes explicitly.
 
-- Open directly in any browser — no build step, no server needed
-- Toggle dark/light with the ☀ button in the nav bar
-- Edit CSS in the `<style>` block (lines 8–~450), HTML in `<body>` (lines ~470–end)
-- When adding pixel animations, always use `steps()` timing function
-- When adding UI text, decide: is this chrome (Zpix) or content/sidebar (Inter)?
-- Keep the dual-theme constraint: every new visual element needs both dark and light styles
-- Media placeholders must be pure CSS — no external image URLs in production design
+## Security & Configuration Tips
+
+Do not commit secrets or local `.env` files. Keep required variables documented in `docs/config.md`. For schema changes, update `prisma/schema.prisma`, regenerate Prisma client, and note migration/setup steps in the PR.

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useAuth } from '@/lib/auth'
 
 export function BottomNav() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
 
   return (
     <nav className="bottom-nav" style={{
@@ -29,7 +29,7 @@ export function BottomNav() {
             <span style={{ fontSize: 18 }}>◈</span>
             <span>通知</span>
           </Link>
-          <Link href="/settings/profile" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, color: 'var(--muted-text)', textDecoration: 'none' }}>
+          <Link href={`/u/${user?.username}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, color: 'var(--muted-text)', textDecoration: 'none' }}>
             <span style={{ fontSize: 18 }}>⬡</span>
             <span>我的</span>
           </Link>

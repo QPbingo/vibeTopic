@@ -108,6 +108,7 @@ model Post {
   bookmarkCount Int       @default(0) @map("bookmark_count")
   isPinned      Boolean   @default(false) @map("is_pinned")
   editedAt      DateTime? @map("edited_at") @db.Timestamptz
+  media         Json      @default("[]") @map("media") @db.JsonB
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 

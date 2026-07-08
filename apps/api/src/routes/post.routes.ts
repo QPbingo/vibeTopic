@@ -5,6 +5,7 @@ import { requireAuth, optionalAuth } from '../middleware/auth.js'
 import { validate } from '../middleware/validate.js'
 import { createPostLimiter } from '../middleware/ratelimit.js'
 import { success, error, paginated } from '../lib/response.js'
+import { ErrorCodes } from '@bingo/shared'
 
 export const postRouter = Router()
 
@@ -13,12 +14,31 @@ const createPostSchema = z.object({
   contentMd: z.string().min(1).max(50000),
   contentHtml: z.string().min(1).optional(),
   tags: z.array(z.string().max(50)).max(5).optional(),
+  media: z.array(z.object({
+    type: z.enum(['image', 'video']),
+    url: z.string(),
+    placeholderType: z.string().optional(),
+    duration: z.string().optional(),
+    isLive: z.boolean().optional(),
+    alt: z.string().optional(),
+    title: z.string().optional(),
+  })).max(10).optional(),
 })
 
 const updatePostSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   contentMd: z.string().min(1).max(50000).optional(),
   contentHtml: z.string().min(1).optional(),
+  tags: z.array(z.string().max(50)).max(5).optional(),
+  media: z.array(z.object({
+    type: z.enum(['image', 'video']),
+    url: z.string(),
+    placeholderType: z.string().optional(),
+    duration: z.string().optional(),
+    isLive: z.boolean().optional(),
+    alt: z.string().optional(),
+    title: z.string().optional(),
+  })).max(10).optional(),
 })
 
 const feedQuerySchema = z.object({
@@ -45,7 +65,8 @@ postRouter.post('/', requireAuth, createPostLimiter, validate('body', createPost
 })
 
 postRouter.get('/:slug', optionalAuth, async (req, res) => {
-  const result = await postService.getBySlug(req.params.slug as string, req.user?.sub)
+  const incrementView = req.query.incrementView === 'true'
+  const result = await postService.getBySlug(req.params.slug as string, req.user?.sub, incrementView)
   if (!result.success) return error(res, result.error.code, 404, result.error.message)
   return success(res, result.data)
 })

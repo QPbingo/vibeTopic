@@ -8,7 +8,7 @@ interface PostMediaProps {
   postSlug?: string
 }
 
-export function PostMedia({ media }: PostMediaProps) {
+export function PostMedia({ media, postSlug }: PostMediaProps) {
   if (media.length === 0) return null
 
   // Video
@@ -40,7 +40,7 @@ export function PostMedia({ media }: PostMediaProps) {
     return (
       <div className="post-media post-media-single">
         {images[0]!.url ? (
-          <img src={images[0]!.url} alt="" className="media-img" />
+          <img src={images[0]!.url} alt={images[0]!.alt || '帖子图片'} loading="lazy" className="media-img" />
         ) : (
           <div className={`media-img media-ph-${images[0]!.placeholderType || '1'}`} />
         )}
@@ -54,7 +54,7 @@ export function PostMedia({ media }: PostMediaProps) {
       <div className={`post-media post-media-grid ${colClass}`}>
         {images.slice(0, 3).map((img, i) => (
           img.url ? (
-            <img key={i} src={img.url} alt="" className="media-img" />
+            <img key={i} src={img.url} alt={img.alt || `帖子图片 ${i + 1}`} loading="lazy" className="media-img" />
           ) : (
             <div key={i} className={`media-img media-ph-${img.placeholderType || ((i % 6) + 1)}`} />
           )

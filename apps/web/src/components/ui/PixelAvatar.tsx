@@ -1,3 +1,7 @@
+'use client'
+
+import { useState } from 'react'
+
 interface PixelAvatarProps {
   username: string
   avatarUrl?: string | null
@@ -22,13 +26,20 @@ function getColorForName(name: string): string {
 }
 
 export function PixelAvatar({ username, avatarUrl, size = 44, className = '' }: PixelAvatarProps) {
+  const [imgError, setImgError] = useState(false)
   const initial = username.charAt(0).toUpperCase()
 
-  if (avatarUrl) {
+  if (avatarUrl && !imgError) {
     return (
-      <div
+      // eslint-disable-next-line @next/next/no-img-element -- plain <img> for uploaded avatars
+      <img
+        src={avatarUrl}
+        alt={`${username} 的头像`}
+        width={size}
+        height={size}
         className={`avatar-block ${className}`}
-        style={{ width: size, height: size, background: `url(${avatarUrl}) center/cover` }}
+        style={{ objectFit: 'cover' }}
+        onError={() => setImgError(true)}
       />
     )
   }
@@ -42,6 +53,7 @@ export function PixelAvatar({ username, avatarUrl, size = 44, className = '' }: 
         background: getColorForName(username),
         fontSize: size * 0.36,
       }}
+      aria-label={`${username} 的头像`}
     >
       {initial}
     </div>

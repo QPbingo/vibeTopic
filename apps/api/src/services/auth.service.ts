@@ -216,7 +216,8 @@ export const authService = {
     })
 
     // Email delivery adapter is intentionally not faked. Local/dev returns the token for manual testing.
-    return { success: true, data: config.email.enabled ? {} : { resetToken } }
+    // Production must never return reset tokens in API responses.
+    return { success: true, data: (config.email.enabled || config.isProduction) ? {} : { resetToken } }
   },
 
   async resetPassword(resetToken: string, password: string): Promise<ServiceResult<null>> {

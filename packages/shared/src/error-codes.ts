@@ -95,6 +95,9 @@ export const ErrorCodes = {
   UPLOAD_CREDENTIAL_FAILED: 20003,
   OSS_UPLOAD_FAILED: 20004,
   FILE_NOT_FOUND: 20005,
+  UPLOAD_UNSUPPORTED_TYPE: 20006,
+  UPLOAD_INVALID_DATA: 20007,
+  UPLOAD_SIZE_MISMATCH: 20008,
 
   // Notification (21001-21999)
   NO_UNREAD_NOTIFICATIONS: 21001,
@@ -176,6 +179,9 @@ export const ErrorMessages: Record<ErrorCode, string> = {
   [ErrorCodes.UPLOAD_CREDENTIAL_FAILED]: '上传凭证获取失败',
   [ErrorCodes.OSS_UPLOAD_FAILED]: 'OSS 上传失败',
   [ErrorCodes.FILE_NOT_FOUND]: '文件不存在',
+  [ErrorCodes.UPLOAD_UNSUPPORTED_TYPE]: '不支持的文件类型',
+  [ErrorCodes.UPLOAD_INVALID_DATA]: '无效的图片数据',
+  [ErrorCodes.UPLOAD_SIZE_MISMATCH]: '文件大小不匹配',
   [ErrorCodes.NO_UNREAD_NOTIFICATIONS]: '无未读通知',
   [ErrorCodes.SEARCH_KEYWORD_EMPTY]: '搜索关键词不能为空',
   [ErrorCodes.SEARCH_KEYWORD_TOO_SHORT]: '搜索关键词过短',

@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { requireAuth } from '../middleware/auth.js'
-import { success, paginated } from '../lib/response.js'
+import { success, error, paginated } from '../lib/response.js'
 import { notificationService } from '../services/notification.service.js'
 import { z } from 'zod'
 import { validate } from '../middleware/validate.js'
@@ -17,13 +17,13 @@ notificationRouter.get('/', requireAuth, validate('query', notificationQuerySche
     cursor: req.query.cursor as string | undefined,
     limit: req.query.limit as unknown as number | undefined,
   })
-  if (!result.success) return paginated(res, [], null, false, result.error?.code, result.error?.message)
+  if (!result.success) return error(res, result.error.code, 400, result.error.message)
   return paginated(res, result.data.items, result.data.cursor, result.data.hasMore)
 })
 
 notificationRouter.get('/unread-count', requireAuth, async (req, res) => {
   const result = await notificationService.unreadCount(req.user!.sub)
-  if (!result.success) return success(res, { count: 0, error: result.error?.message })
+  if (!result.success) return error(res, result.error.code, 400, result.error.message)
   return success(res, result.data)
 })
 

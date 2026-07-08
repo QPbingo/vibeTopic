@@ -6,7 +6,7 @@ import { startHeartbeat } from './heartbeat.js'
 import { config } from './config.js'
 
 const app: Express = express()
-app.use(cors({ origin: ['http://localhost:3000', 'https://bingbingbingo.cn'], credentials: true }))
+app.use(cors({ origin: (process.env.CORS_ORIGINS || 'http://localhost:3000,https://bingbingbingo.cn').split(','), credentials: true }))
 app.use(express.json())
 
 app.get('/health', (_req, res) => {

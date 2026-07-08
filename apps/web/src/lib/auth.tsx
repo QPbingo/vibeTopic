@@ -21,6 +21,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>
   register: (username: string, email: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  refreshMe: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthState>({
@@ -30,6 +31,7 @@ const AuthContext = createContext<AuthState>({
   login: async () => {},
   register: async () => {},
   logout: async () => {},
+  refreshMe: async () => {},
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -92,8 +94,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
   }, [])
 
+  const refreshMe = useCallback(async () => {
+    try {
+      const meRes = await api.get<User>('/auth/me')
+      if (meRes.data) {
+        setUser(meRes.data)
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, register, logout, refreshMe }}>
       {children}
     </AuthContext.Provider>
   )

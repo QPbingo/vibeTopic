@@ -24,7 +24,7 @@ export function CommentCard({ comment, onReply, depth = 0, maxDepth = 2 }: Comme
   const [likeCount, setLikeCount] = useState(comment.likeCount)
 
   const handleLike = async () => {
-    if (!isAuthenticated) { router.push('/login'); return }
+    if (!isAuthenticated) { router.push(`/login?next=/posts/${comment.postId}`); return }
     setActionError('')
     try {
       if (isLiked) {
